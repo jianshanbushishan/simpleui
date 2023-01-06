@@ -1,11 +1,33 @@
 local fn = vim.fn
-local sep_style = vim.g.statusline_sep_style
-local separators = (type(sep_style) == "table" and sep_style)
-  or require("nvchad_ui.icons").statusline_separators[sep_style]
-local sep_l = separators["left"]
-local sep_r = separators["right"]
+local config = require("nvchad_ui").statusline
+local sep_style = config.separator_style
 
-local modes = {
+local default_sep_icons = {
+  round = { left = "", right = "" },
+  block = { left = "█", right = "█" },
+}
+
+local separators = (type(sep_style) == "table" and sep_style)
+  or default_sep_icons[sep_style]
+
+local sep_l = separators["left"]
+local sep_r = "%#St_sep_r#" .. separators["right"] .. " %#ST_EmptySpace#"
+
+local function gen_block(icon, txt, sep_l_hlgroup, iconHl_group, txt_hl_group)
+  return sep_l_hlgroup
+    .. sep_l
+    .. iconHl_group
+    .. icon
+    .. " "
+    .. txt_hl_group
+    .. " "
+    .. txt
+    .. sep_r
+end
+
+local M = {}
+
+M.modes = {
   ["n"] = { "NORMAL", "St_NormalMode" },
   ["niI"] = { "NORMAL i", "St_NormalMode" },
   ["niR"] = { "NORMAL r", "St_NormalMode" },
@@ -31,35 +53,36 @@ local modes = {
   ["r"] = { "PROMPT", "St_ConfirmMode" },
   ["rm"] = { "MORE", "St_ConfirmMode" },
   ["r?"] = { "CONFIRM", "St_ConfirmMode" },
+  ["x"] = { "CONFIRM", "St_ConfirmMode" },
   ["!"] = { "SHELL", "St_TerminalMode" },
 }
 
-local M = {}
-
 M.mode = function()
   local m = vim.api.nvim_get_mode().mode
-  local current_mode = "%#" .. modes[m][2] .. "#" .. "  " .. modes[m][1]
-  local mode_sep1 = "%#" .. modes[m][2] .. "Sep" .. "#" .. sep_r
 
-  return current_mode .. mode_sep1 .. "%#ST_EmptySpace#" .. sep_r
+  return gen_block(
+    "",
+    M.modes[m][1],
+    "%#" .. M.modes[m][2] .. "Sep#",
+    "%#" .. M.modes[m][2] .. "#",
+    "%#" .. M.modes[m][2] .. "Text#"
+  )
 end
 
 M.fileInfo = function()
-  local icon = "  "
-  local filename = (fn.expand("%") == "" and "Empty ") or fn.expand("%:t")
+  local icon = ""
+  local filename = (fn.expand("%") == "" and "Empty") or fn.expand("%:t")
 
-  if filename ~= "Empty " then
+  if filename ~= "Empty" then
     local devicons_present, devicons = pcall(require, "nvim-web-devicons")
 
     if devicons_present then
       local ft_icon = devicons.get_icon(filename)
-      icon = (ft_icon ~= nil and " " .. ft_icon) or ""
+      icon = (ft_icon ~= nil and ft_icon) or icon
     end
-
-    filename = " " .. filename .. " "
   end
 
-  return "%#St_file_info#" .. icon .. filename .. "%#St_file_sep#" .. sep_r
+  return gen_block(icon, filename, "%#St_file_sep#", "%#St_file_bg#", "%#St_file_txt#")
 end
 
 M.git = function()
@@ -76,9 +99,9 @@ M.git = function()
       and ("  " .. git_status.changed)
     or ""
   local removed = (git_status.removed and git_status.removed ~= 0)
-      and ("  " .. git_status.removed)
+      and ("  " .. git_status.removed)
     or ""
-  local branch_name = "   " .. git_status.head .. " "
+  local branch_name = " " .. git_status.head
 
   return "%#St_gitIcons#" .. branch_name .. added .. changed .. removed
 end
@@ -133,30 +156,57 @@ M.LSP_status = function()
       if client.attached_buffers[vim.api.nvim_get_current_buf()] then
         return (
           vim.o.columns > 100
-          and "%#St_LspStatus#" .. "   LSP ~ " .. client.name .. " "
-        ) or "   LSP "
+          and gen_block(
+            "",
+            client.name,
+            "%#St_lsp_sep#",
+            "%#St_lsp_bg#",
+            "%#St_lsp_txt#"
+          )
+        ) or "  LSP "
       end
     end
   end
 end
 
 M.cwd = function()
-  local dir_icon = "%#St_cwd_icon#" .. " "
-  local dir_name = "%#St_cwd_text#" .. " " .. fn.fnamemodify(fn.getcwd(), ":t") .. " "
-  return (vim.o.columns > 85 and ("%#St_cwd_sep#" .. sep_l .. dir_icon .. dir_name)) or ""
+  return (
+    vim.o.columns > 85
+    and gen_block(
+      "",
+      fn.fnamemodify(fn.getcwd(), ":t"),
+      "%#St_cwd_sep#",
+      "%#St_cwd_bg#",
+      "%#St_cwd_txt#"
+    )
+  ) or ""
 end
 
-M.cursor_position = function()
-  local left_sep = "%#St_pos_sep#" .. sep_l .. "%#St_pos_icon#" .. " "
+M.cursor_position = function() end
 
-  local current_line = fn.line(".")
-  local total_line = fn.line("$")
-  local text = math.modf((current_line / total_line) * 100) .. tostring("%%")
+M.run = function()
+  local modules = require("nvchad_ui.statusline.minimal")
 
-  text = (current_line == 1 and "Top") or text
-  text = (current_line == total_line and "Bot") or text
+  if config.overriden_modules then
+    modules = vim.tbl_deep_extend("force", modules, config.overriden_modules())
+  end
 
-  return left_sep .. "%#St_pos_text#" .. " " .. text .. " "
+  return table.concat({
+    modules.mode(),
+    modules.fileInfo(),
+    modules.git(),
+
+    "%=",
+    modules.LSP_progress(),
+    "%=",
+
+    string.upper(vim.bo.fileencoding) == "" and ""
+      or string.upper(vim.bo.fileencoding) .. "  ",
+    modules.LSP_Diagnostics(),
+    modules.LSP_status() or "",
+    modules.cwd(),
+    gen_block("", "%l/%c", "%#St_Pos_sep#", "%#St_Pos_bg#", "%#St_Pos_txt#"),
+  })
 end
 
 return M

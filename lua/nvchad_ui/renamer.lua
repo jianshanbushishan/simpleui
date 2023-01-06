@@ -4,7 +4,7 @@
 local M = {}
 
 M.open = function()
-  local currName = vim.fn.expand "<cword>" .. " "
+  local currName = vim.fn.expand("<cword>") .. " "
 
   local win = require("plenary.popup").create(currName, {
     title = "Renamer",
@@ -22,8 +22,8 @@ M.open = function()
 
   local map_opts = { noremap = true, silent = true }
 
-  vim.cmd "normal w"
-  vim.cmd "startinsert"
+  vim.cmd("normal w")
+  vim.cmd("startinsert")
 
   vim.api.nvim_buf_set_keymap(0, "i", "<Esc>", "<cmd>stopinsert | q!<CR>", map_opts)
   vim.api.nvim_buf_set_keymap(0, "n", "<Esc>", "<cmd>stopinsert | q!<CR>", map_opts)
@@ -32,7 +32,11 @@ M.open = function()
     0,
     "i",
     "<CR>",
-    "<cmd>stopinsert | lua require'nvchad_ui.renamer'.apply(" .. currName .. "," .. win .. ")<CR>",
+    "<cmd>stopinsert | lua require'nvchad_ui.renamer'.apply("
+      .. currName
+      .. ","
+      .. win
+      .. ")<CR>",
     map_opts
   )
 
@@ -40,13 +44,17 @@ M.open = function()
     0,
     "n",
     "<CR>",
-    "<cmd>stopinsert | lua require'nvchad_ui.renamer'.apply(" .. currName .. "," .. win .. ")<CR>",
+    "<cmd>stopinsert | lua require'nvchad_ui.renamer'.apply("
+      .. currName
+      .. ","
+      .. win
+      .. ")<CR>",
     map_opts
   )
 end
 
 M.apply = function(curr, win)
-  local newName = vim.trim(vim.fn.getline ".")
+  local newName = vim.trim(vim.fn.getline("."))
   vim.api.nvim_win_close(win, true)
 
   if #newName > 0 and newName ~= curr then

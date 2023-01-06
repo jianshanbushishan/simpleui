@@ -1,11 +1,23 @@
 local fn = vim.fn
-local sep_style = vim.g.statusline_sep_style
+local config = require("nvchad_ui").statusline
+local sep_style = config.separator_style
+
+local default_sep_icons = {
+  default = { left = "", right = " " },
+  round = { left = "", right = "" },
+  block = { left = "█", right = "█" },
+  arrow = { left = "", right = "" },
+}
+
 local separators = (type(sep_style) == "table" and sep_style)
-  or require("nvchad_ui.icons").statusline_separators[sep_style]
+  or default_sep_icons[sep_style]
+
 local sep_l = separators["left"]
 local sep_r = separators["right"]
 
-local modes = {
+local M = {}
+
+M.modes = {
   ["n"] = { "NORMAL", "St_NormalMode" },
   ["niI"] = { "NORMAL i", "St_NormalMode" },
   ["niR"] = { "NORMAL r", "St_NormalMode" },
@@ -31,15 +43,14 @@ local modes = {
   ["r"] = { "PROMPT", "St_ConfirmMode" },
   ["rm"] = { "MORE", "St_ConfirmMode" },
   ["r?"] = { "CONFIRM", "St_ConfirmMode" },
+  ["x"] = { "CONFIRM", "St_ConfirmMode" },
   ["!"] = { "SHELL", "St_TerminalMode" },
 }
 
-local M = {}
-
 M.mode = function()
   local m = vim.api.nvim_get_mode().mode
-  local current_mode = "%#" .. modes[m][2] .. "#" .. "  " .. modes[m][1]
-  local mode_sep1 = "%#" .. modes[m][2] .. "Sep" .. "#" .. sep_r
+  local current_mode = "%#" .. M.modes[m][2] .. "#" .. "  " .. M.modes[m][1]
+  local mode_sep1 = "%#" .. M.modes[m][2] .. "Sep" .. "#" .. sep_r
 
   return current_mode .. mode_sep1 .. "%#ST_EmptySpace#" .. sep_r
 end
@@ -78,7 +89,7 @@ M.git = function()
   local removed = (git_status.removed and git_status.removed ~= 0)
       and ("  " .. git_status.removed)
     or ""
-  local branch_name = "   " .. git_status.head .. " "
+  local branch_name = "  " .. git_status.head
 
   return "%#St_gitIcons#" .. branch_name .. added .. changed .. removed
 end
@@ -157,6 +168,29 @@ M.cursor_position = function()
   text = (current_line == total_line and "Bot") or text
 
   return left_sep .. "%#St_pos_text#" .. " " .. text .. " "
+end
+
+M.run = function()
+  local modules = require("nvchad_ui.statusline.default")
+
+  if config.overriden_modules then
+    modules = vim.tbl_deep_extend("force", modules, config.overriden_modules())
+  end
+
+  return table.concat({
+    modules.mode(),
+    modules.fileInfo(),
+    modules.git(),
+
+    "%=",
+    modules.LSP_progress(),
+    "%=",
+
+    modules.LSP_Diagnostics(),
+    modules.LSP_status() or "",
+    modules.cwd(),
+    modules.cursor_position(),
+  })
 end
 
 return M

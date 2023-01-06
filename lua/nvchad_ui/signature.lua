@@ -24,7 +24,7 @@ end
 -- thx to https://github.com/seblj/dotfiles/blob/0542cae6cd9a2a8cbddbb733f4f65155e6d20edf/nvim/lua/config/lspconfig/init.lua
 local augroup = vim.api.nvim_create_augroup
 local autocmd = vim.api.nvim_create_autocmd
-local util = require "vim.lsp.util"
+local util = require("vim.lsp.util")
 local clients = {}
 
 local check_trigger_char = function(line_to_cursor, triggers)
@@ -82,7 +82,7 @@ end
 M.setup = function(client)
   table.insert(clients, client)
   local group = augroup("LspSignature", { clear = false })
-  vim.api.nvim_clear_autocmds { group = group, pattern = "<buffer>" }
+  vim.api.nvim_clear_autocmds({ group = group, pattern = "<buffer>" })
 
   autocmd("TextChangedI", {
     group = group,

@@ -14,6 +14,4 @@ local options = {
   },
 }
 
-options = require("core.utils").load_override(options, "NvChad/ui")
-
 return options
