@@ -1,15 +1,7 @@
 dofile(vim.g.base46_cache .. "nvcheatsheet")
 
 local nvcheatsheet = vim.api.nvim_create_namespace "nvcheatsheet"
-local mappings_tb = require("core.utils").load_config().mappings
-local isValid_mapping_TB = require("nvchad_ui.cheatsheet").isValid_mapping_TB
-
--- filter mappings_tb i.e remove tb which have empty fields
-for title, val in pairs(mappings_tb) do
-  if not isValid_mapping_TB(val) then
-    mappings_tb[title] = nil
-  end
-end
+local mappings_tb = require("nvchad_ui").cheatsheet.mappings
 
 vim.api.nvim_create_autocmd("BufWinLeave", {
   callback = function()
@@ -59,19 +51,10 @@ return function()
   -- column width
   local column_width = 0
 
-  for _, modes in pairs(mappings_tb) do
-    modes.plugin = nil -- this is useless for the cheathseet
-
-    for _, mappings in pairs(modes) do
-      if type(mappings) == "table" then
-        for keybind, mappingInfo in pairs(mappings) do
-          if mappingInfo[2] then
-            column_width = column_width > vim.fn.strdisplaywidth(mappingInfo[2] .. prettify_Str(keybind))
-                and column_width
-              or vim.fn.strdisplaywidth(mappingInfo[2] .. prettify_Str(keybind))
-          end
-        end
-      end
+  for _, mappings in pairs(mappings_tb) do
+    for keybind, desc in pairs(mappings) do
+      column_width = column_width > vim.fn.strdisplaywidth(desc .. prettify_Str(keybind)) and column_width
+        or vim.fn.strdisplaywidth(desc .. prettify_Str(keybind))
     end
   end
 
@@ -87,36 +70,29 @@ return function()
   local cards = {}
   local card_headings = {}
 
-  for name, section in pairs(mappings_tb) do
-    for mode, modeMappings in pairs(section) do
-      local mode_suffix = (mode == "n" or mode == "plugin") and "" or string.format(" (%s) ", mode)
-      local card_name = name .. mode_suffix
-      local padding_left = math.floor((column_width - vim.fn.strdisplaywidth(card_name)) / 2)
+  for plugin, mappings in pairs(mappings_tb) do
+    local card_name = plugin
+    local padding_left = math.floor((column_width - vim.fn.strdisplaywidth(card_name)) / 2)
 
-      -- center the heading
-      card_name = string.rep(" ", padding_left)
-        .. card_name
-        .. string.rep(" ", column_width - vim.fn.strdisplaywidth(card_name) - padding_left)
+    -- center the heading
+    card_name = string.rep(" ", padding_left)
+      .. card_name
+      .. string.rep(" ", column_width - vim.fn.strdisplaywidth(card_name) - padding_left)
 
-      card_headings[#card_headings + 1] = card_name
+    card_headings[#card_headings + 1] = card_name
 
-      cards[card_name] = {}
-      cards[card_name][#cards[card_name] + 1] = string.rep(" ", column_width)
+    cards[card_name] = {}
+    cards[card_name][#cards[card_name] + 1] = string.rep(" ", column_width)
 
-      if type(modeMappings) == "table" then
-        for keystroke, mapping_info in pairs(modeMappings) do
-          if mapping_info[2] then
-            local whitespace_len = column_width - 4 - vim.fn.strdisplaywidth(prettify_Str(keystroke) .. mapping_info[2])
-            local pretty_mapping = mapping_info[2] .. string.rep(" ", whitespace_len) .. prettify_Str(keystroke)
+    for keybind, desc in pairs(mappings) do
+      local whitespace_len = column_width - 4 - vim.fn.strdisplaywidth(prettify_Str(keybind) .. desc)
+      local pretty_mapping = desc .. string.rep(" ", whitespace_len) .. prettify_Str(keybind)
 
-            cards[card_name][#cards[card_name] + 1] = "  " .. pretty_mapping .. "  "
-            cards[card_name][#cards[card_name] + 1] = string.rep(" ", column_width)
-          end
-        end
-      end
-
+      cards[card_name][#cards[card_name] + 1] = "  " .. pretty_mapping .. "  "
       cards[card_name][#cards[card_name] + 1] = string.rep(" ", column_width)
     end
+
+    cards[card_name][#cards[card_name] + 1] = string.rep(" ", column_width)
   end
 
   -- divide cheatsheet layout into columns
