@@ -17,26 +17,36 @@ M.bufilter = function()
   return bufs
 end
 
-M.tabuflineNext = function()
-  local bufs = M.bufilter() or {}
-
-  for i, v in ipairs(bufs) do
-    if api.nvim_get_current_buf() == v then
-      vim.cmd(i == #bufs and "b" .. bufs[1] or "b" .. bufs[i + 1])
-      break
+M.getBufIndex = function(bufnr)
+  for i, value in ipairs(vim.t.bufs) do
+    if value == bufnr then
+      return i
     end
   end
 end
 
+M.tabuflineNext = function()
+  local bufs = M.bufilter() or {}
+  local curbufIndex = M.getBufIndex(api.nvim_get_current_buf())
+
+  if not curbufIndex then
+    vim.cmd("b" .. vim.t.bufs[1])
+    return
+  end
+
+  vim.cmd(curbufIndex == #bufs and "b" .. bufs[1] or "b" .. bufs[curbufIndex + 1])
+end
+
 M.tabuflinePrev = function()
   local bufs = M.bufilter() or {}
+  local curbufIndex = M.getBufIndex(api.nvim_get_current_buf())
 
-  for i, v in ipairs(bufs) do
-    if api.nvim_get_current_buf() == v then
-      vim.cmd(i == 1 and "b" .. bufs[#bufs] or "b" .. bufs[i - 1])
-      break
-    end
+  if not curbufIndex then
+    vim.cmd("b" .. vim.t.bufs[1])
+    return
   end
+
+  vim.cmd(curbufIndex == 1 and "b" .. bufs[#bufs] or "b" .. bufs[curbufIndex - 1])
 end
 
 M.close_buffer = function(bufnr)
@@ -44,9 +54,33 @@ M.close_buffer = function(bufnr)
     vim.cmd(vim.bo.buflisted and "set nobl | enew" or "hide")
   else
     bufnr = bufnr or api.nvim_get_current_buf()
-    require("nvchad_ui.tabufline").tabuflinePrev()
-    vim.cmd("confirm bd" .. bufnr)
+    local curBufIndex = M.getBufIndex(bufnr)
+    local bufhidden = vim.bo.bufhidden
+
+    -- force close floating wins
+    if bufhidden == "wipe" then
+      vim.cmd "bw"
+      return
+
+      -- handle listed bufs
+    elseif curBufIndex and #vim.t.bufs > 1 then
+      local newBufIndex = curBufIndex == #vim.t.bufs and -1 or 1
+      vim.cmd("b" .. vim.t.bufs[curBufIndex + newBufIndex])
+
+    -- handle unlisted
+    elseif not vim.bo.buflisted then
+      vim.cmd("b" .. vim.t.bufs[1] .. " | bw" .. bufnr)
+      return
+    else
+      vim.cmd "enew"
+    end
+
+    if not (bufhidden == "delete") then
+      vim.cmd("confirm bd" .. bufnr)
+    end
   end
+
+  vim.cmd "redrawtabline"
 end
 
 -- closes tab + all of its buffers
@@ -54,7 +88,7 @@ M.closeAllBufs = function(action)
   local bufs = vim.t.bufs
 
   if action == "closeTab" then
-    vim.cmd("tabclose")
+    vim.cmd "tabclose"
   end
 
   for _, buf in ipairs(bufs) do
@@ -62,7 +96,29 @@ M.closeAllBufs = function(action)
   end
 
   if action ~= "closeTab" then
-    vim.cmd("enew")
+    vim.cmd "enew"
+  end
+end
+
+-- closes all bufs except current one
+M.closeOtherBufs = function()
+  for _, buf in ipairs(vim.t.bufs) do
+    if buf ~= api.nvim_get_current_buf() then
+      vim.api.nvim_buf_delete(buf, {})
+    end
+  end
+
+  vim.cmd "redrawtabline"
+end
+
+-- closes all other buffers right or left
+M.closeBufs_at_direction = function(x)
+  local bufindex = M.getBufIndex(api.nvim_get_current_buf())
+
+  for i, bufnr in ipairs(vim.t.bufs) do
+    if (x == "left" and i < bufindex) or (x == "right" and i > bufindex) then
+      M.close_buffer(bufnr)
+    end
   end
 end
 
@@ -82,7 +138,7 @@ M.move_buf = function(n)
   end
 
   vim.t.bufs = bufs
-  vim.cmd("redrawtabline")
+  vim.cmd "redrawtabline"
 end
 
 return M
