@@ -36,7 +36,14 @@ return function()
     local card_header = heading
     cards[card_header] = mappings
 
-    for keybind, desc in pairs(mappings) do
+    local keys = {}
+    for k in pairs(mappings) do
+      table.insert(keys, k)
+    end
+    table.sort(keys)
+
+    for _, keybind in ipairs(keys) do
+      desc = mappings[keybind]
       if desc then
         largest_str = largest_str > #desc + #prettify_Str(keybind) and largest_str or #desc + #prettify_Str(keybind)
       end
