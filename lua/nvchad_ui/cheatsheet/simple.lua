@@ -43,7 +43,7 @@ return function()
     table.sort(keys)
 
     for _, keybind in ipairs(keys) do
-      desc = mappings[keybind]
+      local desc = mappings[keybind]
       if desc then
         largest_str = largest_str > #desc + #prettify_Str(keybind) and largest_str or #desc + #prettify_Str(keybind)
       end
