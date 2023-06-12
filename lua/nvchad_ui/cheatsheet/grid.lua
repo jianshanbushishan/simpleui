@@ -52,7 +52,14 @@ return function()
   local column_width = 0
 
   for _, mappings in pairs(mappings_tb) do
-    for keybind, desc in pairs(mappings) do
+    local keys = {}
+    for k in pairs(mappings) do
+      table.insert(keys, k)
+    end
+    table.sort(keys)
+
+    for _, keybind in ipairs(keys) do
+      local desc = mappings[keybind]
       column_width = column_width > vim.fn.strdisplaywidth(desc .. prettify_Str(keybind)) and column_width
         or vim.fn.strdisplaywidth(desc .. prettify_Str(keybind))
     end
@@ -84,7 +91,14 @@ return function()
     cards[card_name] = {}
     cards[card_name][#cards[card_name] + 1] = string.rep(" ", column_width)
 
-    for keybind, desc in pairs(mappings) do
+    local keys = {}
+    for k in pairs(mappings) do
+      table.insert(keys, k)
+    end
+    table.sort(keys)
+
+    for _, keybind in ipairs(keys) do
+      local desc = mappings[keybind]
       local whitespace_len = column_width - 4 - vim.fn.strdisplaywidth(prettify_Str(keybind) .. desc)
       local pretty_mapping = desc .. string.rep(" ", whitespace_len) .. prettify_Str(keybind)
 
@@ -198,7 +212,7 @@ return function()
   for i = 0, max_col_height, 1 do
     for column_i, _ in ipairs(columns) do
       local col_start = column_i == 1 and 0 or (column_i - 1) * column_width + ((column_i - 1) * 2)
-      local col_end = column_i == 1 and column_width or col_start + column_width
+      -- local col_end = column_i == 1 and column_width or col_start + column_width
 
       if columns[column_i][i] then
         -- highlight headings & one line after it

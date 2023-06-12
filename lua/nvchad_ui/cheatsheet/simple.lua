@@ -1,12 +1,4 @@
-local mappings_tb = require("core.utils").load_config().mappings -- default & user mappings
-local isValid_mapping_TB = require("nvchad_ui.cheatsheet").isValid_mapping_TB
-
--- filter mappings_tb i.e remove tb which have empty fields
-for title, val in pairs(mappings_tb) do
-  if not isValid_mapping_TB(val) then
-    mappings_tb[title] = nil
-  end
-end
+local mappings_tb = require("nvchad_ui").cheatsheet.mappings
 
 local api = vim.api
 local genStr = string.rep
@@ -40,21 +32,20 @@ return function()
 
   local cards = {}
 
-  for heading, modes in pairs(mappings_tb) do
-    modes.plugin = nil
+  for heading, mappings in pairs(mappings_tb) do
+    local card_header = heading
+    cards[card_header] = mappings
 
-    for mode, mappings in pairs(modes) do
-      local card_header = mode == "n" and heading or heading .. string.format(" ( %s ) ", mode)
+    local keys = {}
+    for k in pairs(mappings) do
+      table.insert(keys, k)
+    end
+    table.sort(keys)
 
-      cards[card_header] = mappings
-
-      if type(mappings) == "table" then
-        for keybind, mappingInfo in pairs(mappings) do
-          if mappingInfo[2] then
-            largest_str = largest_str > #mappingInfo[2] + #prettify_Str(keybind) and largest_str
-              or #mappingInfo[2] + #prettify_Str(keybind)
-          end
-        end
+    for _, keybind in ipairs(keys) do
+      local desc = mappings[keybind]
+      if desc then
+        largest_str = largest_str > #desc + #prettify_Str(keybind) and largest_str or #desc + #prettify_Str(keybind)
       end
     end
   end
@@ -110,27 +101,25 @@ return function()
     lineNumsDesc[#lineNumsDesc + 1] = "paddingBlock"
 
     -- Set section mappings : description & keybinds
-    for keybind, mappingInfo in pairs(cards[card_name]) do
-      if mappingInfo[2] then
-        local emptySpace = largest_str + 30 - #mappingInfo[2] - #prettify_Str(keybind) - 10
+    for keybind, desc in pairs(cards[card_name]) do
+      local emptySpace = largest_str + 30 - #desc - #prettify_Str(keybind) - 10
 
-        local map = Capitalize(mappingInfo[2]) .. genStr(" ", emptySpace) .. prettify_Str(keybind)
-        local txt = genStr(" ", centerPoint - #map / 2) .. map
+      local map = Capitalize(desc) .. genStr(" ", emptySpace) .. prettify_Str(keybind)
+      local txt = genStr(" ", centerPoint - #map / 2) .. map
 
-        result[#result + 1] = "   " .. txt .. "   "
+      result[#result + 1] = "   " .. txt .. "   "
 
-        if mapping_txt_endIndex == 0 then
-          mapping_txt_endIndex = #result[#result]
-        end
+      if mapping_txt_endIndex == 0 then
+        mapping_txt_endIndex = #result[#result]
+      end
 
-        lineNumsDesc[#lineNumsDesc + 1] = "mapping"
+      lineNumsDesc[#lineNumsDesc + 1] = "mapping"
 
-        result[#result + 1] = padding_chars
-        lineNumsDesc[#lineNumsDesc + 1] = "paddingBlock"
+      result[#result + 1] = padding_chars
+      lineNumsDesc[#lineNumsDesc + 1] = "paddingBlock"
 
-        if horiz_index == 0 then
-          horiz_index = math.floor(centerPoint - math.floor(#map / 2))
-        end
+      if horiz_index == 0 then
+        horiz_index = math.floor(centerPoint - math.floor(#map / 2))
       end
     end
 

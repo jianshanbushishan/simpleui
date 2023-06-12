@@ -60,9 +60,9 @@ local function add_fileInfo(name, bufnr)
     end
 
     icon = (
-      api.nvim_get_current_buf() == bufnr and new_hl(icon_hl, "TbLineBufOn") .. " " .. icon
-      or new_hl(icon_hl, "TbLineBufOff") .. " " .. icon
-    )
+        api.nvim_get_current_buf() == bufnr and new_hl(icon_hl, "TbLineBufOn") .. " " .. icon
+        or new_hl(icon_hl, "TbLineBufOff") .. " " .. icon
+      )
 
     -- check for same buffer names under different dirs
     for _, value in ipairs(vim.t.bufs) do
@@ -142,7 +142,8 @@ end
 local M = {}
 
 M.CoverNvimTree = function()
-  return "%#NvimTreeNormal#" .. (vim.g.nvimtree_side == "right" and "" or string.rep(" ", getNvimTreeWidth()))
+  return "%#NvimTreeNormal#"
+    .. (require("nvchad_ui").tree_side == "right" and "" or string.rep(" ", getNvimTreeWidth()))
 end
 
 M.bufferlist = function()
@@ -205,7 +206,8 @@ M.run = function()
   end
 
   local result = modules.bufferlist() .. (modules.tablist() or "") .. modules.buttons()
-  return (vim.g.nvimtree_side == "left") and modules.CoverNvimTree() .. result or result .. modules.CoverNvimTree()
+  return (require("nvchad_ui").tree_side == "left") and modules.CoverNvimTree() .. result
+    or result .. modules.CoverNvimTree()
 end
 
 return M
