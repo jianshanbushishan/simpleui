@@ -101,7 +101,7 @@ M.LSP_progress = function()
     return ""
   end
 
-  local Lsp = vim.lsp.util.get_progress_messages()[1]
+  local Lsp = vim.lsp.status()[1]
 
   if vim.o.columns < 120 or not Lsp then
     return ""
@@ -158,7 +158,7 @@ M.cursor_position = function()
   return vim.o.columns > 140 and "%#StText# Ln %l, Col %c  " or ""
 end
 
-M.file_encoding = function ()
+M.file_encoding = function()
   return string.upper(vim.bo.fileencoding) == "" and "" or "%#St_encode#" .. string.upper(vim.bo.fileencoding) .. "  "
 end
 
