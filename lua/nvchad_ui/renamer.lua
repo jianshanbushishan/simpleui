@@ -32,11 +32,7 @@ M.open = function()
     0,
     "i",
     "<CR>",
-    "<cmd>stopinsert | lua require'nvchad_ui.renamer'.apply("
-      .. currName
-      .. ","
-      .. win
-      .. ")<CR>",
+    "<cmd>stopinsert | lua require'nvchad_ui.renamer'.apply(" .. currName .. "," .. win .. ")<CR>",
     map_opts
   )
 
@@ -44,11 +40,7 @@ M.open = function()
     0,
     "n",
     "<CR>",
-    "<cmd>stopinsert | lua require'nvchad_ui.renamer'.apply("
-      .. currName
-      .. ","
-      .. win
-      .. ")<CR>",
+    "<cmd>stopinsert | lua require'nvchad_ui.renamer'.apply(" .. currName .. "," .. win .. ")<CR>",
     map_opts
   )
 end

@@ -23,7 +23,7 @@ return function()
 
   -- convert "<leader>th" to "<leader> + th"
   local function prettify_Str(str)
-    local one, two = str:match "([^,]+)>([^,]+)"
+    local one, two = str:match("([^,]+)>([^,]+)")
     return one and one .. "> + " .. two or str
   end
 
@@ -135,7 +135,7 @@ return function()
   api.nvim_buf_set_lines(buf, 3, -1, false, result)
 
   -- set highlights
-  local nvcheatsheet = vim.api.nvim_create_namespace "nvcheatsheet"
+  local nvcheatsheet = vim.api.nvim_create_namespace("nvcheatsheet")
 
   local hlgroups_types = {
     heading = "NvChHeading",

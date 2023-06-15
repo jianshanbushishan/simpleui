@@ -11,14 +11,14 @@ M.setup = function(config)
   vim.opt.statusline = "%!v:lua.require('nvchad_ui.statusline." .. config.statusline.theme .. "').run()"
 
   -- lazyload tabufline
-  require "nvchad_ui.tabufline.lazyload"
+  require("nvchad_ui.tabufline.lazyload")
 
   local new_cmd = vim.api.nvim_create_user_command
 
   -- Command to toggle NvDash
   new_cmd("Nvdash", function()
     if vim.g.nvdash_displayed then
-      vim.cmd "bd"
+      vim.cmd("bd")
     else
       require("nvchad_ui.nvdash").open(vim.api.nvim_create_buf(false, true))
     end
@@ -33,7 +33,7 @@ M.setup = function(config)
 
   new_cmd("NvCheatsheet", function()
     if vim.g.nvcheatsheet_displayed then
-      vim.cmd "bd"
+      vim.cmd("bd")
     else
       require("nvchad_ui.cheatsheet." .. config.cheatsheet.theme)()
     end

@@ -10,19 +10,19 @@ local isBufValid = function(bufnr)
 end
 ---------------------------------------------------------- btn onclick functions ----------------------------------------------
 
-vim.cmd "function! TbGoToBuf(bufnr,b,c,d) \n execute 'b'..a:bufnr \n endfunction"
+vim.cmd("function! TbGoToBuf(bufnr,b,c,d) \n execute 'b'..a:bufnr \n endfunction")
 
-vim.cmd [[
+vim.cmd([[
    function! TbKillBuf(bufnr,b,c,d) 
         call luaeval('require("nvchad_ui.tabufline").close_buffer(_A)', a:bufnr)
-  endfunction]]
+  endfunction]])
 
-vim.cmd "function! TbNewTab(a,b,c,d) \n tabnew \n endfunction"
-vim.cmd "function! TbGotoTab(tabnr,b,c,d) \n execute a:tabnr ..'tabnext' \n endfunction"
-vim.cmd "function! TbTabClose(a,b,c,d) \n lua require('nvchad_ui.tabufline').closeAllBufs('closeTab') \n endfunction"
-vim.cmd "function! TbCloseAllBufs(a,b,c,d) \n lua require('nvchad_ui.tabufline').closeAllBufs() \n endfunction"
-vim.cmd "function! TbToggle_theme(a,b,c,d) \n lua require('base46').toggle_theme() \n endfunction"
-vim.cmd "function! TbToggleTabs(a,b,c,d) \n let g:TbTabsToggled = !g:TbTabsToggled | redrawtabline \n endfunction"
+vim.cmd("function! TbNewTab(a,b,c,d) \n tabnew \n endfunction")
+vim.cmd("function! TbGotoTab(tabnr,b,c,d) \n execute a:tabnr ..'tabnext' \n endfunction")
+vim.cmd("function! TbTabClose(a,b,c,d) \n lua require('nvchad_ui.tabufline').closeAllBufs('closeTab') \n endfunction")
+vim.cmd("function! TbCloseAllBufs(a,b,c,d) \n lua require('nvchad_ui.tabufline').closeAllBufs() \n endfunction")
+vim.cmd("function! TbToggle_theme(a,b,c,d) \n lua require('base46').toggle_theme() \n endfunction")
+vim.cmd("function! TbToggleTabs(a,b,c,d) \n let g:TbTabsToggled = !g:TbTabsToggled | redrawtabline \n endfunction")
 
 -------------------------------------------------------- functions ------------------------------------------------------------
 local function new_hl(group1, group2)
@@ -43,8 +43,8 @@ end
 
 local function getBtnsWidth() -- close, theme toggle btn etc
   local width = 6
-  if fn.tabpagenr "$" ~= 1 then
-    width = width + ((3 * fn.tabpagenr "$") + 2) + 10
+  if fn.tabpagenr("$") ~= 1 then
+    width = width + ((3 * fn.tabpagenr("$")) + 2) + 10
     width = not vim.g.TbTabsToggled and 8 or width
   end
   return width
@@ -60,9 +60,9 @@ local function add_fileInfo(name, bufnr)
     end
 
     icon = (
-        api.nvim_get_current_buf() == bufnr and new_hl(icon_hl, "TbLineBufOn") .. " " .. icon
-        or new_hl(icon_hl, "TbLineBufOff") .. " " .. icon
-      )
+      api.nvim_get_current_buf() == bufnr and new_hl(icon_hl, "TbLineBufOn") .. " " .. icon
+      or new_hl(icon_hl, "TbLineBufOff") .. " " .. icon
+    )
 
     -- check for same buffer names under different dirs
     for _, value in ipairs(vim.t.bufs) do
@@ -174,7 +174,7 @@ end
 vim.g.TbTabsToggled = 0
 
 M.tablist = function()
-  local result, number_of_tabs = "", fn.tabpagenr "$"
+  local result, number_of_tabs = "", fn.tabpagenr("$")
 
   if number_of_tabs > 1 then
     for i = 1, number_of_tabs, 1 do
@@ -198,7 +198,7 @@ M.buttons = function()
 end
 
 M.run = function()
-  local modules = require "nvchad_ui.tabufline.modules"
+  local modules = require("nvchad_ui.tabufline.modules")
 
   -- merge user modules :D
   if config.overriden_modules then

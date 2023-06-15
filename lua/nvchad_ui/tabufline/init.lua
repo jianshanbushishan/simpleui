@@ -59,7 +59,7 @@ M.close_buffer = function(bufnr)
 
     -- force close floating wins
     if bufhidden == "wipe" then
-      vim.cmd "bw"
+      vim.cmd("bw")
       return
 
       -- handle listed bufs
@@ -72,7 +72,7 @@ M.close_buffer = function(bufnr)
       vim.cmd("b" .. vim.t.bufs[1] .. " | bw" .. bufnr)
       return
     else
-      vim.cmd "enew"
+      vim.cmd("enew")
     end
 
     if not (bufhidden == "delete") then
@@ -80,7 +80,7 @@ M.close_buffer = function(bufnr)
     end
   end
 
-  vim.cmd "redrawtabline"
+  vim.cmd("redrawtabline")
 end
 
 -- closes tab + all of its buffers
@@ -88,7 +88,7 @@ M.closeAllBufs = function(action)
   local bufs = vim.t.bufs
 
   if action == "closeTab" then
-    vim.cmd "tabclose"
+    vim.cmd("tabclose")
   end
 
   for _, buf in ipairs(bufs) do
@@ -96,7 +96,7 @@ M.closeAllBufs = function(action)
   end
 
   if action ~= "closeTab" then
-    vim.cmd "enew"
+    vim.cmd("enew")
   end
 end
 
@@ -108,7 +108,7 @@ M.closeOtherBufs = function()
     end
   end
 
-  vim.cmd "redrawtabline"
+  vim.cmd("redrawtabline")
 end
 
 -- closes all other buffers right or left
@@ -138,7 +138,7 @@ M.move_buf = function(n)
   end
 
   vim.t.bufs = bufs
-  vim.cmd "redrawtabline"
+  vim.cmd("redrawtabline")
 end
 
 return M

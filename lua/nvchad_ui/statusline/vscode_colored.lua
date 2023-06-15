@@ -53,7 +53,7 @@ end
 
 M.fileInfo = function()
   local icon = " 󰈚 "
-  local filename = (fn.expand "%" == "" and "Empty ") or fn.expand "%:t"
+  local filename = (fn.expand("%") == "" and "Empty ") or fn.expand("%:t")
 
   if filename ~= "Empty " then
     local devicons_present, devicons = pcall(require, "nvim-web-devicons")
@@ -168,13 +168,13 @@ M.cwd = function()
 end
 
 M.run = function()
-  local modules = require "nvchad_ui.statusline.vscode_colored"
+  local modules = require("nvchad_ui.statusline.vscode_colored")
 
   if config.overriden_modules then
     modules = vim.tbl_deep_extend("force", modules, config.overriden_modules())
   end
 
-  return table.concat {
+  return table.concat({
     modules.mode(),
     modules.fileInfo(),
     modules.git(),
@@ -190,7 +190,7 @@ M.run = function()
     modules.filetype(),
     modules.LSP_status() or "",
     modules.cwd(),
-  }
+  })
 end
 
 return M

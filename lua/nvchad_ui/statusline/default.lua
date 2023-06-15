@@ -70,7 +70,7 @@ end
 
 M.fileInfo = function()
   local icon = " 󰈚 "
-  local filename = (fn.expand "%" == "" and "Empty ") or fn.expand "%:t"
+  local filename = (fn.expand("%") == "" and "Empty ") or fn.expand("%:t")
 
   if filename ~= "Empty " then
     local devicons_present, devicons = pcall(require, "nvim-web-devicons")
@@ -165,9 +165,9 @@ end
 M.cursor_position = function()
   local left_sep = "%#St_pos_sep#" .. sep_l .. "%#St_pos_icon#" .. " "
 
-  local current_line = fn.line "."
-  local total_line = fn.line "$"
-  local text = math.modf((current_line / total_line) * 100) .. tostring "%%"
+  local current_line = fn.line(".")
+  local total_line = fn.line("$")
+  local text = math.modf((current_line / total_line) * 100) .. tostring("%%")
   text = string.format("%4s", text)
 
   text = (current_line == 1 and "Top") or text
@@ -177,13 +177,13 @@ M.cursor_position = function()
 end
 
 M.run = function()
-  local modules = require "nvchad_ui.statusline.default"
+  local modules = require("nvchad_ui.statusline.default")
 
   if config.overriden_modules then
     modules = vim.tbl_deep_extend("force", modules, config.overriden_modules())
   end
 
-  return table.concat {
+  return table.concat({
     modules.mode(),
     modules.fileInfo(),
     modules.git(),
@@ -196,7 +196,7 @@ M.run = function()
     modules.LSP_status() or "",
     modules.cwd(),
     modules.cursor_position(),
-  }
+  })
 end
 
 return M

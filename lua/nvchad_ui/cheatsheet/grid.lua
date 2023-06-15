@@ -1,6 +1,6 @@
 dofile(vim.g.base46_cache .. "nvcheatsheet")
 
-local nvcheatsheet = vim.api.nvim_create_namespace "nvcheatsheet"
+local nvcheatsheet = vim.api.nvim_create_namespace("nvcheatsheet")
 local mappings_tb = require("nvchad_ui").cheatsheet.mappings
 
 vim.api.nvim_create_autocmd("BufWinLeave", {
@@ -44,7 +44,7 @@ return function()
 
   -- convert "<leader>th" to "<leader> + th"
   local function prettify_Str(str)
-    local one, two = str:match "([^,]+)>([^,]+)"
+    local one, two = str:match("([^,]+)>([^,]+)")
     return one and one .. "> + " .. two or str
   end
 
