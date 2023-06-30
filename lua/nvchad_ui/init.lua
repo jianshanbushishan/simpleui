@@ -8,6 +8,7 @@ M.setup = function(config)
   M.cheatsheet = config.cheatsheet
   M.nvdash = config.nvdash
 
+  vim.cmd("autocmd LspProgress * redrawstatus")
   vim.opt.statusline = "%!v:lua.require('nvchad_ui.statusline." .. config.statusline.theme .. "').run()"
 
   -- lazyload tabufline

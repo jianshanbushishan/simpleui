@@ -93,33 +93,15 @@ M.gitchanges = function()
 end
 
 -- LSP STUFF
-M.LSP_progress = function()
-  if not rawget(vim, "lsp") then
+M.lsp_progress = function()
+  if vim.o.columns < 120 then
     return ""
   end
 
-  local Lsp = vim.lsp.status()[1]
-
-  if vim.o.columns < 120 or not Lsp then
-    return ""
-  end
-
-  local msg = Lsp.message or ""
-  local percentage = Lsp.percentage or 0
-  local title = Lsp.title or ""
-  local spinners = { "", "󰪞", "󰪟", "󰪠", "󰪢", "󰪣", "󰪤", "󰪥" }
-  local ms = vim.loop.hrtime() / 1000000
-  local frame = math.floor(ms / 120) % #spinners
-  local content = string.format(" %%<%s %s %s (%s%%%%) ", spinners[frame + 1], title, msg, percentage)
-
-  if config.lsprogress_len then
-    content = string.sub(content, 1, config.lsprogress_len)
-  end
-
-  return content or ""
+  return vim.lsp.status()
 end
 
-M.LSP_Diagnostics = function()
+M.lsp_diagnostics = function()
   if not rawget(vim, "lsp") then
     return " 󰅚 0  0"
   end
@@ -141,7 +123,7 @@ M.filetype = function()
   return vim.bo.ft == "" and "{} plain text  " or "{} " .. vim.bo.ft .. " "
 end
 
-M.LSP_status = function()
+M.lsp_status = function()
   if rawget(vim, "lsp") then
     for _, client in ipairs(vim.lsp.get_active_clients()) do
       if client.attached_buffers[vim.api.nvim_get_current_buf()] and client.name ~= "null-ls" then
@@ -175,17 +157,17 @@ M.run = function()
     modules.mode(),
     modules.fileInfo(),
     modules.git(),
-    modules.LSP_Diagnostics(),
+    modules.lsp_diagnostics(),
 
     "%=",
-    modules.LSP_progress(),
+    modules.lsp_progress(),
     "%=",
 
     modules.gitchanges(),
     modules.cursor_position(),
     modules.file_encoding(),
     modules.filetype(),
-    modules.LSP_status() or "",
+    modules.lsp_status() or "",
     modules.cwd(),
   })
 end
