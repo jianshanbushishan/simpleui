@@ -26,6 +26,10 @@ M.getBufIndex = function(bufnr)
 end
 
 M.tabuflineNext = function()
+  if vim.bo.buftype == "terminal" or vim.bo.buftype == "nofile" then
+    return
+  end
+
   local bufs = M.bufilter() or {}
   local curbufIndex = M.getBufIndex(api.nvim_get_current_buf())
 
@@ -38,6 +42,10 @@ M.tabuflineNext = function()
 end
 
 M.tabuflinePrev = function()
+  if vim.bo.buftype == "terminal" or vim.bo.buftype == "nofile" then
+    return
+  end
+
   local bufs = M.bufilter() or {}
   local curbufIndex = M.getBufIndex(api.nvim_get_current_buf())
 
