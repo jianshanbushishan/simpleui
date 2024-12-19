@@ -119,7 +119,10 @@ M.open = function(buf, win, action)
   ------------------------------------ keybinds ------------------------------------------
   vim.wo[win].virtualedit = "all"
   local btn_start_i = row_i + #header + 2
-  api.nvim_win_set_cursor(win, { btn_start_i, col_i + 5 })
+
+  if col_i > 0 then
+    api.nvim_win_set_cursor(win, { btn_start_i, col_i + 5 })
+  end
 
   map({ "k", "<up>" }, function()
     local cur = fn.line "."
