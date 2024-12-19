@@ -11,6 +11,7 @@ This ui plugin is a collection of many UI modules like statusline, tabline, chea
 In your plugins file
 ```lua
  "nvim-lua/plenary.nvim",
+ { "nvim-tree/nvim-web-devicons", lazy = true },
 
  {
    "nvchad/ui",
