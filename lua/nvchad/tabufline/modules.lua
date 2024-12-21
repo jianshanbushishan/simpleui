@@ -15,7 +15,10 @@ g.toggle_theme_icon = "   "
 
 ---------------------------------------------------------- btn actions functions ----------------------------------------------
 
-vim.cmd "function! TbGoToBuf(bufnr,b,c,d) \n execute 'b'..a:bufnr \n endfunction"
+vim.cmd [[
+   function! TbGoToBuf(bufnr,b,c,d)
+        call luaeval('require("nvchad.tabufline").goto_buf(_A)', a:bufnr)
+  endfunction]]
 
 vim.cmd [[
    function! TbKillBuf(bufnr,b,c,d) 
