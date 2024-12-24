@@ -21,7 +21,7 @@ return function()
 
   vim.fn.prompt_setcallback(buf, function(text)
     local newName = vim.trim(text)
-    api.nvim_win_close(win, true)
+    api.nvim_buf_delete(buf, { force = true })
 
     if #newName > 0 and newName ~= var then
       local params = vim.lsp.util.make_position_params()
