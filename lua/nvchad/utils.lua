@@ -34,7 +34,7 @@ M.replace_word = function(old, new, filepath)
   end
 end
 
-M.set_cleanbuf_opts = function(ft, buf, win)
+M.set_cleanbuf_opts = function(ft, buf)
   opt_local("buflisted", false, { scope = "local" })
   opt_local("modifiable", false, { scope = "local" })
   opt_local("buftype", "nofile", { buf = buf })
@@ -42,7 +42,7 @@ M.set_cleanbuf_opts = function(ft, buf, win)
   opt_local("list", false, { scope = "local" })
   opt_local("wrap", false, { scope = "local" })
   opt_local("relativenumber", false, { scope = "local" })
-  opt_local("cursorline", false, { win = win })
+  opt_local("cursorline", false, { scope = "local" })
   opt_local("colorcolumn", "0", { scope = "local" })
   opt_local("foldcolumn", "0", { scope = "local" })
   opt_local("ft", ft, { buf = buf })

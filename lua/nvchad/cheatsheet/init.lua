@@ -68,8 +68,8 @@ M.organize_mappings = function()
   -- end
 end
 
-M.autocmds = function(buf, win)
-  require("nvchad.utils").set_cleanbuf_opts("nvcheatsheet", buf, win)
+M.autocmds = function(buf)
+  require("nvchad.utils").set_cleanbuf_opts("nvcheatsheet", buf)
 
   local group_id = api.nvim_create_augroup("NvCh", { clear = true })
 

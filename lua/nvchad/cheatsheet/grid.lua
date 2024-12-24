@@ -154,5 +154,5 @@ return function(buf, win, action)
   end
 
   api.nvim_set_current_buf(buf)
-  ch.autocmds(buf, win)
+  ch.autocmds(buf)
 end

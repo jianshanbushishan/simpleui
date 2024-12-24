@@ -95,6 +95,6 @@ return function(buf, win, action)
 
   if action ~= "redraw" then
     api.nvim_set_current_buf(buf)
-    ch.autocmds(buf, win)
+    ch.autocmds(buf)
   end
 end
