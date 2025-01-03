@@ -101,6 +101,7 @@
 --- If false, load tabufline on startup
 --- If true, load tabufline when there is at least 2 buffers opened
 ---@field lazyload? boolean
+---@field bufwidth? number
 --- The order is a list of module names from default modules + your modules
 ---@field order? ('"treeOffset"'|'"buffers"'|'"tabs"'|'"btns"')[] | string[]
 --- Show numbers on tabufline buffer tabs

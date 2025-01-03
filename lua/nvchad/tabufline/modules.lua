@@ -9,7 +9,7 @@ local btn = require("nvchad.tabufline.utils").btn
 local strep = string.rep
 local style_buf = require("nvchad.tabufline.utils").style_buf
 local cur_buf = api.nvim_get_current_buf
-local config = require("nvconfig").ui.tabufline
+local opts = require("nvconfig").ui.tabufline
 
 local M = {}
 g.toggle_theme_icon = "   "
@@ -46,7 +46,7 @@ end
 local function available_space()
   local str = ""
 
-  for _, key in ipairs(config.order) do
+  for _, key in ipairs(opts.order) do
     if key ~= "buffers" then
       str = str .. M[key]()
     end
@@ -68,7 +68,7 @@ M.buffers = function()
   local has_current = false -- have we seen current buffer yet?
 
   for i, nr in ipairs(vim.t.bufs) do
-    if ((#buffers + 1) * 21) > available_space() then
+    if ((#buffers + 1) * opts.bufwidth) > available_space() then
       if has_current then
         break
       end
@@ -77,7 +77,7 @@ M.buffers = function()
     end
 
     has_current = cur_buf() == nr or has_current
-    table.insert(buffers, style_buf(nr, i))
+    table.insert(buffers, style_buf(nr, i, opts.bufwidth))
   end
 
   return table.concat(buffers) .. txt("%=", "Fill") -- buffers + empty space
@@ -113,13 +113,13 @@ end
 return function()
   local result = {}
 
-  if config.modules then
-    for key, value in pairs(config.modules) do
+  if opts.modules then
+    for key, value in pairs(opts.modules) do
       M[key] = value
     end
   end
 
-  for _, v in ipairs(config.order) do
+  for _, v in ipairs(opts.order) do
     table.insert(result, M[v]())
   end
 

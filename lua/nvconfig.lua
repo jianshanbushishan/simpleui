@@ -38,6 +38,7 @@ local options = {
       lazyload = true,
       order = { "treeOffset", "buffers", "tabs", "btns" },
       modules = nil,
+      bufwidth = 21,
     },
   },
 
