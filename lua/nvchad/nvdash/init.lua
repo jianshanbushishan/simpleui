@@ -24,7 +24,14 @@ end
 
 M.open = function(buf, win, action)
   action = action or "open"
+
   win = win or api.nvim_get_current_win()
+
+  if not vim.bo.buflisted and action == 'open' then
+    win = vim.fn.bufwinid(vim.t.bufs[1])
+    api.nvim_set_current_win(win)
+  end
+
   local ns = api.nvim_create_namespace "nvdash"
   local winh = api.nvim_win_get_height(win)
   local winw = api.nvim_win_get_width(win)
