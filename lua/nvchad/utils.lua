@@ -35,8 +35,8 @@ M.replace_word = function(old, new, filepath)
 end
 
 M.set_cleanbuf_opts = function(ft, buf)
-  opt_local("buflisted", false, { scope = "local" })
-  opt_local("modifiable", false, { scope = "local" })
+  opt_local("buflisted", false, { buf = buf })
+  opt_local("modifiable", false, { buf = buf })
   opt_local("buftype", "nofile", { buf = buf })
   opt_local("number", false, { scope = "local" })
   opt_local("list", false, { scope = "local" })
