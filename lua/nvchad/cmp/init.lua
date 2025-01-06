@@ -29,6 +29,10 @@ local M = {
         format_color.tailwind(entry, item, (not (atom_styled or cmp_ui.icons_left) and kind) or "")
       end
 
+      if #item.abbr > cmp_ui.abbr_maxwidth then
+        item.abbr = string.sub(item.abbr, 1, cmp_ui.abbr_maxwidth) .. "…"
+      end
+
       return item
     end,
 
