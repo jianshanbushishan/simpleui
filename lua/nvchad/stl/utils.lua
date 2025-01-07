@@ -155,11 +155,11 @@ M.separators = {
 
 M.state = { lsp_msg = "" }
 
-local spinners = { "", "", "", "󰪞", "󰪟", "󰪠", "󰪢", "󰪣", "󰪤", "󰪥" }
+local spinners = { "", "󰪞", "󰪟", "󰪠", "󰪡", "󰪢", "󰪣", "󰪤", "󰪥", "" }
 
 M.autocmds = function()
   vim.api.nvim_create_autocmd("LspProgress", {
-    pattern = { "begin", "end" },
+    pattern = { "*" },
     callback = function(args)
       local data = args.data.params.value
       local progress = ""
