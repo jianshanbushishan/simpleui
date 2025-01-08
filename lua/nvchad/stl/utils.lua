@@ -159,7 +159,7 @@ local spinners = { "", "󰪞", "󰪟", "󰪠", "󰪡", "󰪢", "󰪣", "󰪤"
 
 M.autocmds = function()
   vim.api.nvim_create_autocmd("LspProgress", {
-    pattern = { "*" },
+    pattern = { "begin", "report", "end" },
     callback = function(args)
       local data = args.data.params.value
       local progress = ""
@@ -170,7 +170,8 @@ M.autocmds = function()
         progress = icon .. " " .. data.percentage .. "%% "
       end
 
-      local str = progress .. (data.message or "") .. " " .. (data.title or "")
+      local loaded_count = data.message and string.match(data.message, "^(%d+/%d+)") or ""
+      local str = progress .. (data.title or "") .. " " .. (loaded_count or "")
       M.state.lsp_msg = data.kind == "end" and "" or str
       vim.cmd.redrawstatus()
     end,
