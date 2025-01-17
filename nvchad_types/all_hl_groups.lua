@@ -84,6 +84,15 @@ error("Requiring a meta file")
 ---@field TodoBgFix? Base46HLGroups # highlight group for todo
 ---@field Todo? Base46HLGroups # highlight group for syntax
 ---@field Title? Base46HLGroups # highlight group for defaults
+---@field TinyInlineInvDiagnosticVirtualTextWarn? Base46HLGroups # highlight group for tiny-inline-diagnostic
+---@field TinyInlineInvDiagnosticVirtualTextInfo? Base46HLGroups # highlight group for tiny-inline-diagnostic
+---@field TinyInlineInvDiagnosticVirtualTextHint? Base46HLGroups # highlight group for tiny-inline-diagnostic
+---@field TinyInlineInvDiagnosticVirtualTextError? Base46HLGroups # highlight group for tiny-inline-diagnostic
+---@field TinyInlineDiagnosticVirtualTextWarn? Base46HLGroups # highlight group for tiny-inline-diagnostic
+---@field TinyInlineDiagnosticVirtualTextInfo? Base46HLGroups # highlight group for tiny-inline-diagnostic
+---@field TinyInlineDiagnosticVirtualTextHint? Base46HLGroups # highlight group for tiny-inline-diagnostic
+---@field TinyInlineDiagnosticVirtualTextError? Base46HLGroups # highlight group for tiny-inline-diagnostic
+---@field TinyInlineDiagnosticVirtualTextArrow? Base46HLGroups # highlight group for tiny-inline-diagnostic
 ---@field TelescopeSelection? Base46HLGroups # highlight group for telescope
 ---@field TelescopeResultsTitle? Base46HLGroups # highlight group for telescope
 ---@field TelescopeResultsDiffDelete? Base46HLGroups # highlight group for telescope
@@ -694,6 +703,15 @@ error("Requiring a meta file")
 ---@field TodoBgFix? Base46HLGroups # highlight group for todo
 ---@field Todo? Base46HLGroups # highlight group for syntax
 ---@field Title? Base46HLGroups # highlight group for defaults
+---@field TinyInlineInvDiagnosticVirtualTextWarn? Base46HLGroups # highlight group for tiny-inline-diagnostic
+---@field TinyInlineInvDiagnosticVirtualTextInfo? Base46HLGroups # highlight group for tiny-inline-diagnostic
+---@field TinyInlineInvDiagnosticVirtualTextHint? Base46HLGroups # highlight group for tiny-inline-diagnostic
+---@field TinyInlineInvDiagnosticVirtualTextError? Base46HLGroups # highlight group for tiny-inline-diagnostic
+---@field TinyInlineDiagnosticVirtualTextWarn? Base46HLGroups # highlight group for tiny-inline-diagnostic
+---@field TinyInlineDiagnosticVirtualTextInfo? Base46HLGroups # highlight group for tiny-inline-diagnostic
+---@field TinyInlineDiagnosticVirtualTextHint? Base46HLGroups # highlight group for tiny-inline-diagnostic
+---@field TinyInlineDiagnosticVirtualTextError? Base46HLGroups # highlight group for tiny-inline-diagnostic
+---@field TinyInlineDiagnosticVirtualTextArrow? Base46HLGroups # highlight group for tiny-inline-diagnostic
 ---@field TelescopeSelection? Base46HLGroups # highlight group for telescope
 ---@field TelescopeResultsTitle? Base46HLGroups # highlight group for telescope
 ---@field TelescopeResultsDiffDelete? Base46HLGroups # highlight group for telescope
@@ -1365,6 +1383,7 @@ error("Requiring a meta file")
 ---| "'syntax'"
 ---| "'tbline'"
 ---| "'telescope'"
+---| "'tiny-inline-diagnostic'"
 ---| "'todo'"
 ---| "'treesitter'"
 ---| "'trouble'"
