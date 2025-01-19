@@ -384,6 +384,9 @@ error("Requiring a meta file")
 ---@field FloatTitle? Base46HLGroups # highlight group for defaults
 ---@field FloatBorder? Base46HLGroups # highlight group for defaults
 ---@field Float? Base46HLGroups # highlight group for syntax
+---@field FlashMatch? Base46HLGroups # highlight group for flash
+---@field FlashLabel? Base46HLGroups # highlight group for flash
+---@field FlashCurrent? Base46HLGroups # highlight group for flash
 ---@field Exception? Base46HLGroups # highlight group for defaults
 ---@field ErrorMsg? Base46HLGroups # highlight group for defaults
 ---@field Error? Base46HLGroups # highlight group for defaults
@@ -1038,6 +1041,9 @@ error("Requiring a meta file")
 ---@field FloatTitle? Base46HLGroups # highlight group for defaults
 ---@field FloatBorder? Base46HLGroups # highlight group for defaults
 ---@field Float? Base46HLGroups # highlight group for syntax
+---@field FlashMatch? Base46HLGroups # highlight group for flash
+---@field FlashLabel? Base46HLGroups # highlight group for flash
+---@field FlashCurrent? Base46HLGroups # highlight group for flash
 ---@field Exception? Base46HLGroups # highlight group for defaults
 ---@field ErrorMsg? Base46HLGroups # highlight group for defaults
 ---@field Error? Base46HLGroups # highlight group for defaults
@@ -1361,6 +1367,7 @@ error("Requiring a meta file")
 ---| "'devicons'"
 ---| "'diffview'"
 ---| "'edgy'"
+---| "'flash'"
 ---| "'git-conflict'"
 ---| "'git'"
 ---| "'grug_far'"
