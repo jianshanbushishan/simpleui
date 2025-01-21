@@ -11,6 +11,7 @@ vim.g.nvchad_theme = 'onedark'
 ---| '"wombat"'
 ---| '"vscode_light"'
 ---| '"vscode_dark"'
+---| '"vesper"'
 ---| '"tundra"'
 ---| '"tomorrow_night"'
 ---| '"tokyonight"'
@@ -183,6 +184,7 @@ vim.g.nvchad_theme = 'onedark'
 ---@field tokyonight? ThemeTable # Changes for tokyonight theme
 ---@field tomorrow_night? ThemeTable # Changes for tomorrow_night theme
 ---@field tundra? ThemeTable # Changes for tundra theme
+---@field vesper? ThemeTable # Changes for vesper theme
 ---@field vscode_dark? ThemeTable # Changes for vscode_dark theme
 ---@field vscode_light? ThemeTable # Changes for vscode_light theme
 ---@field wombat? ThemeTable # Changes for wombat theme
