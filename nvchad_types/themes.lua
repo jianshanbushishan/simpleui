@@ -23,6 +23,7 @@ vim.g.nvchad_theme = 'onedark'
 ---| '"solarized_dark"'
 ---| '"seoul256_light"'
 ---| '"seoul256_dark"'
+---| '"scaryforest"'
 ---| '"rxyhn"'
 ---| '"rosepine"'
 ---| '"rosepine-dawn"'
@@ -173,6 +174,7 @@ vim.g.nvchad_theme = 'onedark'
 ---@field ["rosepine-dawn"]? ThemeTable # Changes for rosepine-dawn theme
 ---@field rosepine? ThemeTable # Changes for rosepine theme
 ---@field rxyhn? ThemeTable # Changes for rxyhn theme
+---@field scaryforest? ThemeTable # Changes for scaryforest theme
 ---@field ["seoul256_dark"]? ThemeTable # Changes for seoul256_dark theme
 ---@field ["seoul256_light"]? ThemeTable # Changes for seoul256_light theme
 ---@field solarized_dark? ThemeTable # Changes for solarized_dark theme
