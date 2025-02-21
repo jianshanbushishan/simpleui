@@ -1,5 +1,3 @@
-dofile(vim.g.base46_cache .. "term")
-
 local api = vim.api
 local g = vim.g
 local M = {}
@@ -15,7 +13,11 @@ local pos_data = {
 }
 
 local nvconfig = require "nvconfig"
-local config = nvconfig.term or nvconfig.ui.term
+local config = nvconfig.term
+
+if config.base46_colors then
+  dofile(vim.g.base46_cache .. "term")
+end
 
 -- used for initially resizing terms
 vim.g.nvhterm = false

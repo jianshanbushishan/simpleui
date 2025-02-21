@@ -156,6 +156,7 @@
 ---@field border? string
 
 ---@class TermConfig
+---@field base46_colors? boolean
 ---@field winopts? table
 ---@field sizes? TermSizes
 ---@field float? TermFloat
