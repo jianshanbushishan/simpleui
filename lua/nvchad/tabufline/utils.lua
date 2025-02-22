@@ -33,10 +33,11 @@ local function new_hl(group1, group2)
   return "%#" .. group1 .. group2 .. "#"
 end
 
-local function gen_unique_name(oldname, index)
+local function gen_unique_name(name, index)
   for i2, nr2 in ipairs(vim.t.bufs) do
-    if index ~= i2 and filename(buf_name(nr2)) == oldname then
-      return fn.fnamemodify(buf_name(vim.t.bufs[index]), ":p:.")
+    local filepath = filename(buf_name(nr2))
+    if index ~= i2 and filepath == name then
+      return vim.fn.fnamemodify(buf_name(nr2), ":h:t") .. "/" .. name
     end
   end
 end
