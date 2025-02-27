@@ -73,7 +73,7 @@ return function(buf, event)
     methods.lsp_var(buf, nil, min, max)
   end
 
-  if event == "BufEnter" and not vim.b[buf].colorify_attached then
+  if not vim.b[buf].colorify_attached then
     del_extmarks_on_textchange(buf)
   end
 end
