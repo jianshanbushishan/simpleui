@@ -64,7 +64,7 @@ M.lsp_var = function(buf, line, min, max)
           end
 
           if needs_hl(buf, range_start.line, range_start.character, hl_group, opts) then
-            set_extmark(buf, ns, range_start.line, range_start.character, opts)
+            pcall(set_extmark, buf, ns, range_start.line, range_start.character, opts)
           end
         end
       end, buf)
