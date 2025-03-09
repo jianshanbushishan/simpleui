@@ -35,8 +35,8 @@ CONTENTS                                                         *nvui.contents*
     6.5 Local Themes                                  |nvui.base46.local_themes|
 
  7. `Lsp`                                               |nvui.lsp|
-    5.1 Signature Help                                |nvui.lsp.signature|
-    5.2 Renamer                                       |nvui.lsp.renamer|
+    7.1 Signature Help                                |nvui.lsp.signature|
+    7.2 Renamer                                       |nvui.lsp.renamer|
 
  8. `Colorify`                                          |nvui.colorify|
  
