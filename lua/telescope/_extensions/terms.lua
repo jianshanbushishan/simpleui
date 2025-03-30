@@ -9,8 +9,25 @@ local actions = require "telescope.actions"
 local make_entry = require "telescope.make_entry"
 local action_state = require "telescope.actions.state"
 
+local get_general_terms = function()
+  local bufs = vim.api.nvim_list_bufs()
+  local nvterms = vim.g.nvchad_terms or {}
+
+  local result = {}
+
+  for _, buf in ipairs(bufs) do
+    if vim.bo[buf].buftype == "terminal" and not nvterms[tostring(buf)] then
+      result[tostring(buf)] = {}
+    end
+  end
+
+  return result
+end
+
 local function wrapper()
-  local term_bufs = vim.g.nvchad_terms or {}
+  vim.g.nvchad_terms = vim.g.nvchad_terms or {}
+
+  local term_bufs = vim.tbl_extend("force", get_general_terms(), vim.g.nvchad_terms)
   local buffers = {}
 
   for buf, _ in pairs(term_bufs) do
@@ -45,7 +62,11 @@ local function wrapper()
         -- open term only if its window isnt opened
         if vim.fn.bufwinid(entry.bufnr) == -1 then
           local termopts = vim.g.nvchad_terms[tostring(entry.bufnr)]
-          require("nvchad.term").display(termopts)
+          if termopts then
+            require("nvchad.term").display(termopts)
+          else
+            vim.api.nvim_set_current_buf(entry.bufnr)
+          end
         end
       end)
       return true
