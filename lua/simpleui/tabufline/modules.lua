@@ -4,33 +4,33 @@ local g = vim.g
 
 dofile(vim.g.base46_cache .. "tbline")
 
-local txt = require("nvchad.tabufline.utils").txt
-local btn = require("nvchad.tabufline.utils").btn
+local txt = require("simpleui.tabufline.utils").txt
+local btn = require("simpleui.tabufline.utils").btn
 local strep = string.rep
-local style_buf = require("nvchad.tabufline.utils").style_buf
+local style_buf = require("simpleui.tabufline.utils").style_buf
 local cur_buf = api.nvim_get_current_buf
-local opts = require("nvconfig").ui.tabufline
+local opts = require("simpleui.nvconfig").ui.tabufline
 
 local M = {}
 g.toggle_theme_icon = "   "
 
 ------------------------------- btn actions functions -----------------------------------
 
-vim.cmd [[
+vim.cmd([[
   function! TbGoToBuf(bufnr,b,c,d)
-    call luaeval('require("nvchad.tabufline").goto_buf(_A)', a:bufnr)
-  endfunction]]
+    call luaeval('require("simpleui.tabufline").goto_buf(_A)', a:bufnr)
+  endfunction]])
 
-vim.cmd [[
+vim.cmd([[
   function! TbKillBuf(bufnr,b,c,d) 
-    call luaeval('require("nvchad.tabufline").close_buffer(_A)', a:bufnr)
-  endfunction]]
+    call luaeval('require("simpleui.tabufline").close_buffer(_A)', a:bufnr)
+  endfunction]])
 
-vim.cmd "function! TbNewTab(a,b,c,d) \n tabnew \n endfunction"
-vim.cmd "function! TbGotoTab(tabnr,b,c,d) \n execute a:tabnr ..'tabnext' \n endfunction"
-vim.cmd "function! TbCloseAllBufs(a,b,c,d) \n lua require('nvchad.tabufline').closeAllBufs() \n endfunction"
-vim.cmd "function! TbToggle_theme(a,b,c,d) \n lua require('base46').toggle_theme() \n endfunction"
-vim.cmd "function! TbToggleTabs(a,b,c,d) \n let g:TbTabsToggled = !g:TbTabsToggled | redrawtabline \n endfunction"
+vim.cmd("function! TbNewTab(a,b,c,d) \n tabnew \n endfunction")
+vim.cmd("function! TbGotoTab(tabnr,b,c,d) \n execute a:tabnr ..'tabnext' \n endfunction")
+vim.cmd("function! TbCloseAllBufs(a,b,c,d) \n lua require('simpleui.tabufline').closeAllBufs() \n endfunction")
+vim.cmd("function! TbToggle_theme(a,b,c,d) \n lua require('simpleui.base46').toggle_theme() \n endfunction")
+vim.cmd("function! TbToggleTabs(a,b,c,d) \n let g:TbTabsToggled = !g:TbTabsToggled | redrawtabline \n endfunction")
 
 ---------------------------------- functions -------------------------------------------
 
@@ -88,7 +88,7 @@ end
 g.TbTabsToggled = 0
 
 M.tabs = function()
-  local result, tabs = "", fn.tabpagenr "$"
+  local result, tabs = "", fn.tabpagenr("$")
 
   if tabs > 1 then
     for nr = 1, tabs, 1 do

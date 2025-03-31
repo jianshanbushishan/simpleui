@@ -1,4 +1,4 @@
-local opts = require("nvconfig").ui.tabufline
+local opts = require("simpleui.nvconfig").ui.tabufline
 local api = vim.api
 local get_opt = api.nvim_get_option_value
 local cur_buf = api.nvim_get_current_buf
@@ -64,16 +64,16 @@ if opts.lazyload then
     pattern = "*",
     group = vim.api.nvim_create_augroup("TabuflineLazyLoad", {}),
     callback = function()
-      if #vim.fn.getbufinfo { buflisted = 1 } >= 2 or #vim.api.nvim_list_tabpages() >= 2 then
+      if #vim.fn.getbufinfo({ buflisted = 1 }) >= 2 or #vim.api.nvim_list_tabpages() >= 2 then
         vim.o.showtabline = 2
-        vim.o.tabline = "%!v:lua.require('nvchad.tabufline.modules')()"
-        vim.api.nvim_del_augroup_by_name "TabuflineLazyLoad"
+        vim.o.tabline = "%!v:lua.require('simpleui.tabufline.modules')()"
+        vim.api.nvim_del_augroup_by_name("TabuflineLazyLoad")
       end
     end,
   })
 else
   vim.o.showtabline = 2
-  vim.o.tabline = "%!v:lua.require('nvchad.tabufline.modules')()"
+  vim.o.tabline = "%!v:lua.require('simpleui.tabufline.modules')()"
 end
 
 autocmd("FileType", {

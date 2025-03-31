@@ -20,7 +20,7 @@ M.btn = function(str, hl, func, arg)
 end
 
 local function filename(str)
-  return str:match "([^/\\]+)[/\\]*$"
+  return str:match("([^/\\]+)[/\\]*$")
 end
 
 local btn = M.btn
@@ -53,7 +53,7 @@ M.style_buf = function(nr, i, w)
   name = name and (gen_unique_name(name, i) or name) or " No Name "
 
   if name ~= " No Name " then
-    local devicon, devicon_hl = require("nvim-web-devicons").get_icon(name)
+    local devicon, devicon_hl = require("simpleui.nvim-web-devicons").get_icon(name)
 
     if devicon then
       icon = " " .. devicon .. " "

@@ -47,7 +47,7 @@ M.close_buffer = function(bufnr)
 
     -- force close floating wins or nonbuflisted
     if api.nvim_win_get_config(0).zindex then
-      vim.cmd "bw"
+      vim.cmd("bw")
       return
 
       -- handle listed bufs
@@ -63,7 +63,7 @@ M.close_buffer = function(bufnr)
       vim.cmd("bw" .. bufnr)
       return
     else
-      vim.cmd "enew"
+      vim.cmd("enew")
     end
 
     if not (bufhidden == "delete") then
@@ -71,7 +71,7 @@ M.close_buffer = function(bufnr)
     end
   end
 
-  vim.cmd "redrawtabline"
+  vim.cmd("redrawtabline")
 end
 
 -- closes tab + all of its buffers
@@ -114,7 +114,7 @@ M.move_buf = function(n)
   end
 
   vim.t.bufs = bufs
-  vim.cmd "redrawtabline"
+  vim.cmd("redrawtabline")
 end
 
 M.goto_buf = function(bufnr)
