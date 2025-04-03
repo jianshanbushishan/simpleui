@@ -45,16 +45,15 @@ autocmd({ "BufAdd", "BufEnter", "tabnew" }, {
 
 autocmd("BufDelete", {
   callback = function(args)
-    for _, tab in ipairs(vim.api.nvim_list_tabpages()) do
-      local bufs = vim.t[tab].bufs
-      if bufs then
-        for i, bufnr in ipairs(bufs) do
-          if bufnr == args.buf then
-            table.remove(bufs, i)
-            vim.t[tab].bufs = bufs
-            break
-          end
-        end
+    local bufs = vim.t.bufs
+    if bufs == nil then
+      return
+    end
+    for i, bufnr in ipairs(bufs) do
+      if bufnr == args.buf then
+        table.remove(bufs, i)
+        vim.t.bufs = bufs
+        break
       end
     end
   end,
@@ -80,21 +79,20 @@ local function new_hl(group1, group2)
   return "%#" .. group1 .. group2 .. "#"
 end
 
-M.txt = function(str, hl)
+function M.highlight_txt(str, hl)
   str = str or ""
   local a = "%#Tb" .. hl .. "#" .. str
   return a
 end
 
-M.style_buf = function(nr, i, w)
-  -- add fileicon + name
+function M.format_buf(buf_nr, idx)
   local icon = "󰈚 "
-  local is_curbuf = cur_buf() == nr
+  local is_curbuf = cur_buf() == buf_nr
   local tbHlName = "BufO" .. (is_curbuf and "n" or "ff")
   local icon_hl = new_hl("DevIconDefault", tbHlName)
 
-  local name = filename(buf_name(nr))
-  name = name and (gen_unique_name(name, i) or name) or " No Name "
+  local name = filename(buf_name(buf_nr))
+  name = name and (gen_unique_name(name, idx) or name) or " No Name "
 
   if name ~= " No Name " then
     local devicon, devicon_hl = require("nvim-web-devicons").get_icon(name)
@@ -105,32 +103,25 @@ M.style_buf = function(nr, i, w)
     end
   end
 
-  -- padding around bufname; 15= maxnamelen + 2 icon & space + 2 close icon
-  local pad = math.floor((w - #name - 5) / 2)
-  pad = pad <= 0 and 1 or pad
+  name = M.highlight_txt(name, tbHlName)
 
-  local maxname_len = 15
-
-  name = string.sub(name, 1, 13) .. (#name > maxname_len and ".." or "")
-  name = M.txt(name, tbHlName)
-
-  name = "▌" .. (icon_hl .. icon .. name)
-
-  -- modified bufs icon or close icon
-  local mod = get_opt("mod", { buf = nr })
-  local cur_mod = get_opt("mod", { buf = 0 })
-
-  local close_btn = ""
-  -- color close btn for focused / hidden  buffers
+  local status = ""
+  local status_hl = ""
+  local sep = ""
+  local mod = get_opt("mod", { buf = buf_nr })
   if is_curbuf then
-    close_btn = cur_mod and M.txt("  ", "BufOnModified") or ""
+    sep = "▌"
+    status_hl = "BufOnModified"
   else
-    close_btn = mod and M.txt("  ", "BufOffModified") or ""
+    sep = "|"
+    status_hl = "BufOffModified"
   end
 
-  name = M.txt(name .. close_btn, "BufO" .. (is_curbuf and "n" or "ff"))
+  status = mod and M.highlight_txt(" ", status_hl) or ""
+  local ret = string.format("%s%d. %s %s%s", sep, idx, name, status, icon)
+  -- name = M.highlight_txt(name .. status, "BufO" .. (is_curbuf and "n" or "ff"))
 
-  return name
+  return ret
 end
 
 local function buf_index(bufnr)
@@ -141,7 +132,7 @@ local function buf_index(bufnr)
   end
 end
 
-M.next = function()
+function M.next()
   local bufs = vim.t.bufs
   local curbufIndex = buf_index(cur_buf())
 
@@ -153,7 +144,7 @@ M.next = function()
   set_buf((curbufIndex == #bufs and bufs[1]) or bufs[curbufIndex + 1])
 end
 
-M.prev = function()
+function M.prev()
   local bufs = vim.t.bufs
   local curbufIndex = buf_index(cur_buf())
 
@@ -165,7 +156,7 @@ M.prev = function()
   set_buf((curbufIndex == 1 and bufs[#bufs]) or bufs[curbufIndex - 1])
 end
 
-M.close_buffer = function(bufnr)
+function M.close_buffer(bufnr)
   bufnr = bufnr or cur_buf()
 
   if vim.bo[bufnr].buftype == "terminal" then
@@ -203,7 +194,7 @@ M.close_buffer = function(bufnr)
   vim.cmd("redrawtabline")
 end
 
-M.closeAllBufs = function(include_cur_buf)
+function M.close_all_bufs(include_cur_buf)
   local bufs = vim.t.bufs
 
   if include_cur_buf ~= nil and not include_cur_buf then
@@ -221,7 +212,7 @@ function M.setup()
 
   vim.t.bufs = vim.tbl_filter(vim.api.nvim_buf_is_valid, vim.t.bufs)
 
-  for i, nr in ipairs(vim.t.bufs) do
+  for idx, nr in ipairs(vim.t.bufs) do
     if ((#buffers + 1) * bufwidth) > vim.o.columns then
       if has_current then
         break
@@ -231,10 +222,10 @@ function M.setup()
     end
 
     has_current = cur_buf() == nr or has_current
-    table.insert(buffers, M.style_buf(nr, i, bufwidth))
+    table.insert(buffers, M.format_buf(nr, idx))
   end
 
-  return table.concat(buffers) .. M.txt("%=", "Fill")
+  return table.concat(buffers) .. M.highlight_txt("%=", "Fill")
 end
 
 return M
