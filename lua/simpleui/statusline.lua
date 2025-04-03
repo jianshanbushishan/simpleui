@@ -16,7 +16,6 @@ local orders = {
   "file",
   "git",
   "%=",
-  "lsp_msg",
   "%=",
   "diagnostics",
   "lsp",
@@ -69,46 +68,12 @@ local modes = {
   ["!"] = { "SHELL", "Terminal" },
 }
 
-local utils = {}
 local function stbufnr()
   return vim.api.nvim_win_get_buf(vim.g.statusline_winid or 0)
 end
 
 local function is_activewin()
   return vim.api.nvim_get_current_win() == vim.g.statusline_winid
-end
-
--- credits to ii14 for str:match func
-function utils.file()
-  local icon = "󰈚"
-  local path = vim.api.nvim_buf_get_name(stbufnr())
-  local name = (path == "" and "Empty") or path:match("([^/\\]+)[/\\]*$")
-
-  if name ~= "Empty" then
-    local devicons_present, devicons = pcall(require, "nvim-web-devicons")
-
-    if devicons_present then
-      local ft_icon = devicons.get_icon(name)
-      icon = (ft_icon ~= nil and ft_icon) or icon
-    end
-  end
-
-  return { icon, name }
-end
-
-function utils.git()
-  if not vim.b[stbufnr()].gitsigns_head or vim.b[stbufnr()].gitsigns_git_status then
-    return ""
-  end
-
-  local git_status = vim.b[stbufnr()].gitsigns_status_dict
-
-  local added = (git_status.added and git_status.added ~= 0) and ("  " .. git_status.added) or ""
-  local changed = (git_status.changed and git_status.changed ~= 0) and ("  " .. git_status.changed) or ""
-  local removed = (git_status.removed and git_status.removed ~= 0) and ("  " .. git_status.removed) or ""
-  local branch_name = " " .. git_status.head
-
-  return " " .. branch_name .. added .. changed .. removed
 end
 
 local function GetDiagnoosticInfo(level, format)
@@ -120,31 +85,15 @@ local function GetDiagnoosticInfo(level, format)
   return string.format(format, num)
 end
 
-function utils.lsp()
-  if rawget(vim, "lsp") then
-    for _, client in ipairs(vim.lsp.get_clients()) do
-      if client.attached_buffers[utils.stbufnr()] then
-        return (vim.o.columns > 100 and "   LSP ~ " .. client.name .. " ") or "   LSP "
-      end
-    end
-  end
-
-  return ""
-end
-
-function utils.diagnostics()
+function M.diagnostics()
   if not rawget(vim, "lsp") then
     return ""
   end
 
-  GetDiagnoosticInfo(vim.diagnostic.severity.ERROR, "%#St_lspError# %d ")
-  GetDiagnoosticInfo(vim.diagnostic.severity.WARN, "%#St_lspWarning# %d ")
-  GetDiagnoosticInfo(vim.diagnostic.severity.HINT, "%#St_lspHints#󰛩 %d ")
-  GetDiagnoosticInfo(vim.diagnostic.severity.INFO, "%#St_lspInfo#󰋼 %d ")
-  local err = #vim.diagnostic.get(stbufnr(), { severity = vim.diagnostic.severity.ERROR })
-  local warn = #vim.diagnostic.get(stbufnr(), { severity = vim.diagnostic.severity.WARN })
-  local hints = #vim.diagnostic.get(stbufnr(), { severity = vim.diagnostic.severity.HINT })
-  local info = #vim.diagnostic.get(stbufnr(), { severity = vim.diagnostic.severity.INFO })
+  local err = GetDiagnoosticInfo(vim.diagnostic.severity.ERROR, "%%#St_lspError# %d ")
+  local warn = GetDiagnoosticInfo(vim.diagnostic.severity.WARN, "%%#St_lspWarning# %d ")
+  local hints = GetDiagnoosticInfo(vim.diagnostic.severity.HINT, "%%#St_lspHints#󰛩 %d ")
+  local info = GetDiagnoosticInfo(vim.diagnostic.severity.INFO, "%%#St_lspInfo#󰋼 %d ")
 
   return string.format(" %s%s%s%s", err, warn, hints, info)
 end
@@ -162,23 +111,55 @@ function M.mode()
 end
 
 function M.file()
-  local x = utils.file()
-  local name = " " .. x[2] .. " "
-  return "%#St_file# " .. x[1] .. name .. "%#St_file_sep#" .. sep_r
+  local icon = "󰈚"
+  local path = vim.api.nvim_buf_get_name(stbufnr())
+  local name = (path == "" and "Empty") or path:match("([^/\\]+)[/\\]*$")
+
+  if name ~= "Empty" then
+    local devicons_present, devicons = pcall(require, "nvim-web-devicons")
+
+    if devicons_present then
+      local ft_icon = devicons.get_icon(name)
+      icon = (ft_icon ~= nil and ft_icon) or icon
+    end
+  end
+
+  return string.format("%%#St_file# %s %s %%#St_file_sep#%s", icon, name, sep_r)
+end
+
+local function GetGitInfo(status, type, format)
+  if status[type] == nil then
+    return ""
+  end
+
+  if status[type] < 1 then
+    return ""
+  end
+
+  return string.format(format, status[type])
 end
 
 function M.git()
-  return "%#St_gitIcons#" .. utils.git()
-end
+  local git_status = { head = "main" }
 
-function M.lsp_msg()
-  return "%#St_LspMsg#" .. utils.lsp_msg()
-end
+  local added = GetGitInfo(git_status, "added", "  ")
+  local changed = GetGitInfo(git_status, "added", "   ")
+  local removed = GetGitInfo(git_status, "added", "  ")
+  local branch_name = " " .. git_status.head
 
-M.diagnostics = utils.diagnostics
+  return string.format("%%#St_gitIcons# %s%s%s%s", branch_name, added, changed, removed)
+end
 
 function M.lsp()
-  return "%#St_Lsp#" .. utils.lsp()
+  local lspInfo = ""
+  for _, client in ipairs(vim.lsp.get_clients()) do
+    if client.attached_buffers[stbufnr()] then
+      lspInfo = (vim.o.columns > 100 and "   LSP ~ " .. client.name .. " ") or "   LSP "
+      break
+    end
+  end
+
+  return "%#St_Lsp#" .. lspInfo
 end
 
 function M.cwd()
@@ -195,7 +176,12 @@ function M.setup()
   local result = {}
 
   for _, item in ipairs(orders) do
-    table.insert(result, M[item])
+    local val = M[item]
+    if type(val) == "string" then
+      table.insert(result, val)
+    else
+      table.insert(result, val())
+    end
   end
 
   return table.concat(result)
