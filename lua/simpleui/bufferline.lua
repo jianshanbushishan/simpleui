@@ -62,11 +62,17 @@ local function filename(str)
   return str:match("([^/\\]+)[/\\]*$")
 end
 
-local function new_hl(group1, group2)
+local function new_hightlight(group1, group2, is_curbuf)
   local fg = get_hl(0, { name = group1 }).fg
+  local fg2 = get_hl(0, { name = "Tb" .. group2 }).fg
   local bg = get_hl(0, { name = "Tb" .. group2 }).bg
-  vim.api.nvim_set_hl(0, group1 .. group2, { fg = fg, bg = bg })
-  return "%#" .. group1 .. group2 .. "#"
+  local hl_name = group1 .. group2
+  if is_curbuf then
+    vim.api.nvim_set_hl(0, hl_name, { fg = fg, bg = bg })
+  else
+    vim.api.nvim_set_hl(0, hl_name, { fg = fg2, bg = bg })
+  end
+  return string.format("%%#%s#", hl_name)
 end
 
 function M.highlight_txt(str, hl)
@@ -80,7 +86,7 @@ function M.format_buf(buf_nr, idx)
   local icon = "󰈚"
   local is_curbuf = cur_buf() == buf_nr
   local tbHlName = ""
-  local icon_hl = new_hl("DevIconDefault", tbHlName)
+  local icon_hl = new_hightlight("DevIconDefault", tbHlName, is_curbuf)
   local status = ""
   local status_hl = ""
   local sep = ""
@@ -106,7 +112,7 @@ function M.format_buf(buf_nr, idx)
 
     if devicon then
       icon = devicon
-      icon_hl = new_hl(devicon_hl, tbHlName)
+      icon_hl = new_hightlight(devicon_hl, tbHlName, is_curbuf)
     end
   end
 
