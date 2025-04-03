@@ -77,7 +77,7 @@ function M.highlight_txt(str, hl)
 end
 
 function M.format_buf(buf_nr, idx)
-  local icon = "󰈚 "
+  local icon = "󰈚"
   local is_curbuf = cur_buf() == buf_nr
   local tbHlName = ""
   local icon_hl = new_hl("DevIconDefault", tbHlName)
@@ -105,18 +105,19 @@ function M.format_buf(buf_nr, idx)
     local devicon, devicon_hl = require("nvim-web-devicons").get_icon(name)
 
     if devicon then
-      icon = " " .. devicon .. " "
+      icon = devicon
       icon_hl = new_hl(devicon_hl, tbHlName)
     end
   end
 
   sep = M.highlight_txt(sep, sep_hl)
+  name = string.format(" %d. %s", idx, name)
   name = M.highlight_txt(name, tbHlName)
   local mod = get_opt("mod", { buf = buf_nr })
   status = mod and M.highlight_txt(" ", status_hl) or ""
-  icon = M.highlight_txt(icon, icon_hl)
 
-  return string.format("%s%d. %s %s%s", sep, idx, name, status, icon)
+  local ret = string.format("%s%s %s%s%s ", sep, name, status, icon_hl, icon)
+  return ret
 end
 
 local function buf_index(bufnr)
