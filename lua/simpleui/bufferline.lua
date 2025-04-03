@@ -63,15 +63,6 @@ local function filename(str)
   return str:match("([^/\\]+)[/\\]*$")
 end
 
-local function gen_unique_name(name, index)
-  for i2, nr2 in ipairs(vim.t.bufs) do
-    local filepath = filename(buf_name(nr2))
-    if index ~= i2 and filepath == name then
-      return vim.fn.fnamemodify(buf_name(vim.t.bufs[index]), ":h:t") .. "/" .. name
-    end
-  end
-end
-
 local function new_hl(group1, group2)
   local fg = get_hl(0, { name = group1 }).fg
   local bg = get_hl(0, { name = "Tb" .. group2 }).bg
@@ -88,13 +79,29 @@ end
 function M.format_buf(buf_nr, idx)
   local icon = "󰈚 "
   local is_curbuf = cur_buf() == buf_nr
-  local tbHlName = "BufO" .. (is_curbuf and "n" or "ff")
+  local tbHlName = ""
   local icon_hl = new_hl("DevIconDefault", tbHlName)
+  local status = ""
+  local status_hl = ""
+  local sep = ""
+  local sep_hl = ""
+
+  if is_curbuf then
+    sep = "▌"
+    status_hl = "BufOnModified"
+    tbHlName = "BufOn"
+    sep_hl = "BufSepOn"
+  else
+    sep = "|"
+    status_hl = "BufOffModified"
+    tbHlName = "BufOff"
+    sep_hl = "BufSepOff"
+  end
 
   local name = filename(buf_name(buf_nr))
-  name = name and (gen_unique_name(name, idx) or name) or " No Name "
+  name = name or "No Name"
 
-  if name ~= " No Name " then
+  if name ~= "No Name" then
     local devicon, devicon_hl = require("nvim-web-devicons").get_icon(name)
 
     if devicon then
@@ -103,25 +110,13 @@ function M.format_buf(buf_nr, idx)
     end
   end
 
+  sep = M.highlight_txt(sep, sep_hl)
   name = M.highlight_txt(name, tbHlName)
-
-  local status = ""
-  local status_hl = ""
-  local sep = ""
   local mod = get_opt("mod", { buf = buf_nr })
-  if is_curbuf then
-    sep = "▌"
-    status_hl = "BufOnModified"
-  else
-    sep = "|"
-    status_hl = "BufOffModified"
-  end
-
   status = mod and M.highlight_txt(" ", status_hl) or ""
-  local ret = string.format("%s%d. %s %s%s", sep, idx, name, status, icon)
-  -- name = M.highlight_txt(name .. status, "BufO" .. (is_curbuf and "n" or "ff"))
+  icon = M.highlight_txt(icon, icon_hl)
 
-  return ret
+  return string.format("%s%d. %s %s%s", sep, idx, name, status, icon)
 end
 
 local function buf_index(bufnr)
@@ -208,7 +203,7 @@ end
 
 function M.setup()
   local buffers = {}
-  local has_current = false -- have we seen current buffer yet?
+  local has_current = false
 
   vim.t.bufs = vim.tbl_filter(vim.api.nvim_buf_is_valid, vim.t.bufs)
 
