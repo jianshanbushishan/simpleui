@@ -1,6 +1,5 @@
 local M = {}
 
-local bufwidth = 25
 local cur_buf = vim.api.nvim_get_current_buf
 local set_buf = vim.api.nvim_set_current_buf
 local buf_name = vim.api.nvim_buf_get_name
@@ -13,7 +12,7 @@ vim.t.bufs = vim.t.bufs
     return vim.fn.buflisted(buf) == 1
   end, vim.api.nvim_list_bufs())
 
-autocmd({ "BufAdd", "BufEnter", "tabnew" }, {
+autocmd({ "BufAdd", "BufEnter" }, {
   callback = function(args)
     local bufs = vim.t.bufs
     local is_curbuf = cur_buf() == args.buf
@@ -77,6 +76,7 @@ function M.highlight_txt(str, hl)
 end
 
 function M.format_buf(buf_nr, idx)
+  local len = 0
   local icon = "󰈚"
   local is_curbuf = cur_buf() == buf_nr
   local tbHlName = ""
@@ -110,14 +110,19 @@ function M.format_buf(buf_nr, idx)
     end
   end
 
+  len = len + #sep
   sep = M.highlight_txt(sep, sep_hl)
   name = string.format(" %d. %s", idx, name)
+  len = len + #name
   name = M.highlight_txt(name, tbHlName)
   local mod = get_opt("mod", { buf = buf_nr })
-  status = mod and M.highlight_txt(" ", status_hl) or ""
+  if mod then
+    status = M.highlight_txt(" ", status_hl)
+    len = len + 2
+  end
 
-  local ret = string.format("%s%s %s%s%s ", sep, name, status, icon_hl, icon)
-  return ret
+  local str = string.format("%s%s %s%s%s ", sep, name, status, icon_hl, icon)
+  return len + 4, str
 end
 
 local function buf_index(bufnr)
@@ -202,14 +207,26 @@ function M.close_all_bufs(include_cur_buf)
   end
 end
 
+local function get_len(tbl)
+  local sum = 0
+  for _, val in ipairs(tbl) do
+    sum = sum + val
+  end
+  return sum
+end
+
 function M.setup()
   local buffers = {}
+  local lens = {}
   local has_current = false
 
   vim.t.bufs = vim.tbl_filter(vim.api.nvim_buf_is_valid, vim.t.bufs)
+  vim.t.bufs = vim.tbl_filter(function(bufnr)
+    return get_opt("buftype", { buf = bufnr }) == ""
+  end, vim.t.bufs)
 
   for idx, nr in ipairs(vim.t.bufs) do
-    if ((#buffers + 1) * bufwidth) > vim.o.columns then
+    if get_len(lens) > vim.o.columns then
       if has_current then
         break
       end
@@ -218,7 +235,9 @@ function M.setup()
     end
 
     has_current = cur_buf() == nr or has_current
-    table.insert(buffers, M.format_buf(nr, idx))
+    local len, str = M.format_buf(nr, idx)
+    table.insert(buffers, str)
+    table.insert(lens, len)
   end
 
   return table.concat(buffers) .. M.highlight_txt("%=", "Fill")
