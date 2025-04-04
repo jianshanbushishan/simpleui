@@ -3,9 +3,9 @@ local M = {}
 local uv = vim.uv
 
 local timer = nil
-local interval_ms = 500 -- 更新频率
+local interval_ms = 1000
 local git_status_cache = nil
-local is_updating = false -- 防止并发更新
+local is_updating = false
 
 local function aysnc_get_git_branch_name()
   local branch_cmd = "git"
