@@ -127,7 +127,12 @@ function M.file()
   return string.format("%%#St_file# %s %s %%#St_file_sep#%s", icon, name, sep_r)
 end
 
-local function GetGitInfo(status, type, format)
+local function GetGitInfo(type, format)
+  local status = vim.g.git_status_counts
+  if status == nil then
+    return ""
+  end
+
   if status[type] == nil then
     return ""
   end
@@ -136,18 +141,16 @@ local function GetGitInfo(status, type, format)
     return ""
   end
 
-  return string.format(format, status[type])
+  return string.format("%s%d", format, status[type])
 end
 
 function M.git()
-  local git_status = { head = "main" }
+  local added = GetGitInfo("added", "  ")
+  local modified = GetGitInfo("modified", "   ")
+  local removed = GetGitInfo("deleted", "  ")
+  local branch_name = " main"
 
-  local added = GetGitInfo(git_status, "added", "  ")
-  local changed = GetGitInfo(git_status, "added", "   ")
-  local removed = GetGitInfo(git_status, "added", "  ")
-  local branch_name = " " .. git_status.head
-
-  return string.format("%%#St_gitIcons# %s%s%s%s", branch_name, added, changed, removed)
+  return string.format("%%#St_gitIcons# %s%s%s%s", branch_name, added, modified, removed)
 end
 
 function M.lsp()

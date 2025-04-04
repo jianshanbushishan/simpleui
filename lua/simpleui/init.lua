@@ -1,6 +1,9 @@
 local M = {}
 
 function M.setup()
+  local git_updater = require("simpleui.gitstatus")
+  git_updater.start()
+
   vim.opt.statusline = "%!v:lua.require('simpleui.statusline').setup()"
   vim.opt.tabline = "%!v:lua.require('simpleui.bufferline').setup()"
   vim.opt.showtabline = 2
