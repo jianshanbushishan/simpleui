@@ -145,7 +145,7 @@ local function GetGitInfo(type, format)
 end
 
 function M.git()
-  if vim.g.git_status_info == nil then
+  if vim.g.git_status_info == nil or vim.g.git_status_info.branch == nil then
     return ""
   end
 
