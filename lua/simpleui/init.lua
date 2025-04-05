@@ -1,8 +1,11 @@
 local M = {}
 
 function M.setup()
-  local git_updater = require("simpleui.gitstatus")
-  git_updater.start()
+  local modules = require("simpleui.statusline").modules
+  if vim.tbl_contains(modules, "git") then
+    local git_updater = require("simpleui.gitstatus")
+    git_updater.setup()
+  end
 
   vim.opt.statusline = "%!v:lua.require('simpleui.statusline').setup()"
   vim.opt.tabline = "%!v:lua.require('simpleui.bufferline').setup()"

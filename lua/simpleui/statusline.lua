@@ -11,7 +11,7 @@ local separators = separatorsAll["default"]
 local sep_l = separators["left"]
 local sep_r = separators["right"]
 
-local orders = {
+M.modules = {
   "mode",
   "file",
   "git",
@@ -182,8 +182,8 @@ M["%="] = "%="
 function M.setup()
   local result = {}
 
-  for _, item in ipairs(orders) do
-    local val = M[item]
+  for _, module in ipairs(M.modules) do
+    local val = M[module]
     if type(val) == "string" then
       table.insert(result, val)
     else
