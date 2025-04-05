@@ -149,7 +149,7 @@ local function async_get_git_status_counts()
   end)
   if not read_ok_stdout then
     vim.notify("Failed to start reading stdout for status: " .. tostring(read_err_stdout), vim.log.levels.ERROR)
-    handle:kill()
+    handle:kill(9)
     is_updating = false -- 出错时重置标记
     return
   end
@@ -242,7 +242,7 @@ local function async_check_is_git_repo()
   end)
   if not read_ok_check then
     vim.notify("Failed to start reading stdout for check: " .. tostring(read_err_check), vim.log.levels.ERROR)
-    handle:kill()
+    handle:kill(9)
     is_updating = false -- 出错时重置标记
     return
   end
