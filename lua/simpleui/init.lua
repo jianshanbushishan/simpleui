@@ -4,7 +4,7 @@ function M.setup()
   local modules = require("simpleui.statusline").modules
   if vim.tbl_contains(modules, "git") then
     local git_updater = require("simpleui.gitstatus")
-    git_updater.setup()
+    git_updater.start()
   end
 
   vim.opt.statusline = "%!v:lua.require('simpleui.statusline').setup()"
