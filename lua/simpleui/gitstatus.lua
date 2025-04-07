@@ -2,17 +2,16 @@ local M = {}
 
 local uv = vim.uv
 
-local timer = nil
-local interval_ms = 1000
 local git_status_cache = nil
 local is_updating = false
 
 local function aysnc_get_git_branch_name()
   local branch_cmd = "git"
-  -- Using symbolic-ref. Fails on detached HEAD, but output is usually empty then.
   local branch_args = { "symbolic-ref", "--short", "HEAD" }
+
   local branch_stdout_pipe = uv.new_pipe(false)
   local branch_stderr_pipe = uv.new_pipe(false)
+
   if not branch_stdout_pipe or not branch_stderr_pipe then
     vim.notify("Failed to create pipes for git branch", vim.log.levels.ERROR)
     return
@@ -28,6 +27,9 @@ local function aysnc_get_git_branch_name()
     else
       vim.g.git_status_info.branch = nil -- Indicate no branch name found / detached HEAD
     end
+    vim.schedule(function()
+      vim.cmd("redrawstatus")
+    end)
   end
 
   branch_handle = uv.spawn(
@@ -257,47 +259,30 @@ local function trigger_update()
 end
 
 function M.start()
-  if timer and not timer:is_closing() then
-    timer:stop()
-  end
+  local group = vim.api.nvim_create_augroup("GitStatusSaveUpdater", { clear = true })
+  vim.api.nvim_create_autocmd("BufWritePost", {
+    pattern = "*",
+    group = group,
+    callback = trigger_update,
+  })
 
-  timer = uv.new_timer()
-  if not timer then
-    vim.notify("Failed to create uv timer", vim.log.levels.ERROR)
-    return
-  end
-
-  local start_ok, start_err = pcall(timer.start, timer, 0, interval_ms, vim.schedule_wrap(trigger_update))
-  if not start_ok then
-    vim.notify("Failed to start uv timer: " .. tostring(start_err), vim.log.levels.ERROR)
-    timer:close()
-    timer = nil
-    return
-  end
-
+  -- Autocommand to handle session loading
+  vim.api.nvim_create_autocmd("SessionLoadPost", {
+    pattern = "*",
+    group = group,
+    callback = function()
+      -- Trigger update after session load (delay slightly to ensure CWD is settled)
+      uv.new_timer():start(
+        100,
+        0,
+        vim.schedule_wrap(function()
+          trigger_update() -- Trigger update using the same logic as BufWritePost
+        end)
+      )
+    end,
+  })
   trigger_update()
 end
-
-function M.stop()
-  if timer and not timer:is_closing() then
-    timer:stop()
-    timer:close()
-    timer = nil
-    vim.schedule(function()
-      vim.g.git_status_info = nil
-      git_status_cache = nil
-      is_updating = false -- 确保停止时重置
-    end)
-  end
-end
-
--- Neovim 退出时自动停止定时器
-vim.api.nvim_create_autocmd("VimLeavePre", {
-  pattern = "*",
-  callback = function()
-    M.stop()
-  end,
-})
 
 -- 初始化全局变量
 vim.g.git_status_info = nil
