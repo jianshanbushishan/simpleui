@@ -112,8 +112,20 @@ end
 
 function M.file()
   local icon = "󰈚"
-  local path = vim.api.nvim_buf_get_name(stbufnr())
-  local name = (path == "" and "Empty") or path:match("([^/\\]+)[/\\]*$")
+  local bufnr = stbufnr()
+  local path = vim.api.nvim_buf_get_name(bufnr)
+  local type = vim.api.nvim_get_option_value("buftype", { buf = bufnr })
+  local name = "Empty"
+  if type ~= "" and type ~= "nofile" then
+    name = type
+  else
+    local start, _ = string.find(path, "data/scratch/")
+    if start ~= nil then
+      name = "Scratch"
+    else
+      name = (path == "" and "Empty") or path:match("([^/\\]+)[/\\]*$")
+    end
+  end
 
   if name ~= "Empty" then
     local devicons_present, devicons = pcall(require, "nvim-web-devicons")
