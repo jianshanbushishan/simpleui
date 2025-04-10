@@ -1,13 +1,9 @@
 local M = {}
 
-local separatorsAll = {
-  default = { left = "", right = "" },
-  round = { left = "", right = "" },
-  block = { left = "█", right = "█" },
-  arrow = { left = "", right = "" },
+local separators = {
+  default = { left = "", right = "" },
 }
 
-local separators = separatorsAll["default"]
 local sep_l = separators["left"]
 local sep_r = separators["right"]
 
@@ -170,25 +166,48 @@ function M.git()
 end
 
 function M.lsp()
-  local lspInfo = ""
+  local lspPrefix = "  LSP ~"
+  local lspDefault = "%#St_Lsp#   LSP "
+  if vim.o.columns < 100 then
+    return lspDefault
+  end
+
+  local name = ""
   for _, client in ipairs(vim.lsp.get_clients()) do
     if client.attached_buffers[stbufnr()] then
-      lspInfo = (vim.o.columns > 100 and "   LSP ~ " .. client.name .. " ") or "   LSP "
+      name = client.name
       break
     end
   end
 
-  return "%#St_Lsp#" .. lspInfo
+  if name == "" then
+    return lspDefault
+  end
+
+  return string.format("%%#St_Lsp# %s %s ", lspPrefix, name)
 end
 
 function M.cwd()
-  local icon = "%#St_cwd_icon#" .. "󰉋 "
+  if vim.o.columns < 85 then
+    return ""
+  end
+
   local name = vim.uv.cwd()
-  name = "%#St_cwd_text#" .. " " .. (name:match("([^/\\]+)[/\\]*$") or name) .. " "
-  return (vim.o.columns > 85 and ("%#St_cwd_sep#" .. sep_l .. icon .. name)) or ""
+  if name == nil then
+    return ""
+  end
+
+  name = name:match("([^/\\]+)[/\\]*$") or name
+  return string.format("%%#St_cwd_sep#%s%%#St_cwd_icon# 󰉋 %s %s", sep_l, name, sep_l)
 end
 
-M.cursor = "%#St_pos_sep#" .. sep_l .. "%#St_pos_icon# %#St_pos_text# %l/%v "
+function M.cursor()
+  local current_line = vim.api.nvim_win_get_cursor(0)[1]
+  local total_lines = vim.api.nvim_buf_line_count(0)
+  local percentage = (current_line * 100.0) / total_lines
+  return string.format("%%#St_pos_sep#%s%%#St_pos_icon#  %.1f  %s", sep_l, percentage, sep_l)
+end
+
 M["%="] = "%="
 
 function M.setup()
