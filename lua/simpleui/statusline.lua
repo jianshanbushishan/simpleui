@@ -1,7 +1,8 @@
 local M = {}
 
 local separators = {
-  default = { left = "", right = "" },
+  left = "",
+  right = "",
 }
 
 local sep_l = separators["left"]
