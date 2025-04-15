@@ -2,7 +2,6 @@ local M = {}
 
 local uv = vim.uv
 
-local git_status_cache = nil
 local is_updating = false
 
 local function aysnc_get_git_branch_name()
@@ -203,10 +202,7 @@ local function async_check_is_git_repo()
       if code == 0 and signal == 0 and stdout_output:match("^true") then
         async_get_git_status_counts()
       else
-        if git_status_cache ~= nil then
-          vim.g.git_status_info = nil
-          git_status_cache = nil
-        end
+        vim.g.git_status_info = nil
         is_updating = false
       end
     end)
@@ -255,6 +251,7 @@ local function async_check_is_git_repo()
 end
 
 local function trigger_update()
+  vim.g.git_status_info = nil
   async_check_is_git_repo()
 end
 
