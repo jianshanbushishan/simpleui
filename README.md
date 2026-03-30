@@ -10,6 +10,7 @@ SimpleUI是一个轻量级的Neovim UI插件集合，提供现代化的状态栏
 - 显示当前文件信息和图标(支持nvim-web-devicons)
 - Git分支和变更状态显示(added/modified/deleted)
 - LSP诊断信息和客户端状态
+- LSP进度显示(支持Neovim 0.12的 `LspProgress`)
 - 当前工作目录显示
 - 光标位置显示
 - 多种分隔符样式可选(default/round/block/arrow)
@@ -57,6 +58,11 @@ require("simpleui").setup({
       lsp = 120,
       cwd = 90,
     },
+    lsp_progress = {
+      enabled = true,
+      max_length = 48,
+      bar_width = 10,
+    },
   },
   bufferline = {
     showtabline = 2,
@@ -85,6 +91,9 @@ require("simpleui").setup({
 
 - Neovim 0.9+
 - (可选) nvim-web-devicons - 用于文件类型图标
+
+`statusline` 中的 `lsp` 模块现在会在有活动任务时优先显示更精简的 LSP progress，
+例如 `Indexing [====------] 42%`；没有活动任务时则回退为原来的 LSP 客户端名称显示。
 
 ## 贡献
 

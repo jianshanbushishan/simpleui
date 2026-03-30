@@ -17,6 +17,11 @@ local defaults = {
       lsp = 100,
       cwd = 85,
     },
+    lsp_progress = {
+      enabled = true,
+      max_length = 40,
+      bar_width = 10,
+    },
   },
   bufferline = {
     showtabline = 2,

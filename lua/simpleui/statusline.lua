@@ -1,8 +1,12 @@
 local M = {}
 
 local config = require("simpleui.config")
+local api = vim.api
 local uv = vim.uv or vim.loop
 local has_devicons, devicons = pcall(require, "nvim-web-devicons")
+local state = {
+  lsp_progress = {},
+}
 
 local separators = {
   left = "",
@@ -86,23 +90,135 @@ local function get_diagnostic_info(level, format)
   return string.format(format, count)
 end
 
-local function get_attached_lsp_name(bufnr)
+local function get_attached_lsp_clients(bufnr)
   local ok, clients = pcall(vim.lsp.get_clients, { bufnr = bufnr })
-  if ok and #clients > 0 then
-    return clients[1].name
+  if ok then
+    return clients
   end
 
-  if vim.lsp.get_active_clients == nil then
-    return ""
+  if vim.lsp.buf_get_clients == nil then
+    return {}
   end
 
-  for _, client in ipairs(vim.lsp.get_active_clients()) do
-    if client.attached_buffers and client.attached_buffers[bufnr] then
-      return client.name
+  ok, clients = pcall(vim.lsp.buf_get_clients, bufnr)
+  if not ok or clients == nil then
+    return {}
+  end
+
+  local result = {}
+  for _, client in pairs(clients) do
+    if client ~= nil then
+      table.insert(result, client)
     end
   end
 
-  return ""
+  return result
+end
+
+local function get_attached_lsp_name(bufnr)
+  local clients = get_attached_lsp_clients(bufnr)
+  if clients[1] == nil then
+    return ""
+  end
+
+  return clients[1].name
+end
+
+local function escape_statusline(text)
+  return (text or ""):gsub("%%", "%%%%")
+end
+
+local function truncate_text(text, max_length)
+  if text == "" or max_length == nil or max_length < 1 then
+    return text
+  end
+
+  if vim.fn.strchars(text) <= max_length then
+    return text
+  end
+
+  return vim.fn.strcharpart(text, 0, math.max(max_length - 3, 1)) .. "..."
+end
+
+local function get_progress_percentage(value)
+  if type(value.percentage) ~= "number" then
+    return nil
+  end
+
+  return math.max(0, math.min(100, math.floor(value.percentage + 0.5)))
+end
+
+local function get_progress_label(item)
+  local value = item.value or {}
+  local label = value.title or value.message or "LSP"
+  label = vim.trim(label)
+  return label ~= "" and label or "LSP"
+end
+
+local function build_progress_bar(percentage, width)
+  width = math.max(width or 1, 1)
+  local filled = math.floor((percentage * width) / 100 + 0.5)
+  if percentage > 0 then
+    filled = math.max(filled, 1)
+  end
+  filled = math.min(filled, width)
+
+  return string.format("[%s%s]", string.rep("=", filled), string.rep("-", width - filled))
+end
+
+local function format_progress_text(item, progress_settings)
+  local label = get_progress_label(item)
+  local percentage = get_progress_percentage(item.value or {})
+  if percentage == nil then
+    return truncate_text(label, progress_settings.max_length)
+  end
+
+  local bar = build_progress_bar(percentage, progress_settings.bar_width)
+  local suffix = string.format(" %s %d%%", bar, percentage)
+  local max_label_length = progress_settings.max_length - vim.fn.strchars(suffix) - 1
+
+  if max_label_length < 1 then
+    return truncate_text(label .. suffix, progress_settings.max_length)
+  end
+
+  return string.format("%s%s", truncate_text(label, max_label_length), suffix)
+end
+
+local function latest_progress_for_client(client_id)
+  local entries = state.lsp_progress[client_id]
+  if entries == nil then
+    return nil
+  end
+
+  local latest
+  for _, item in pairs(entries) do
+    if latest == nil or item.updated_at > latest.updated_at then
+      latest = item
+    end
+  end
+
+  return latest
+end
+
+local function get_attached_lsp_progress(bufnr)
+  local progress_settings = settings().lsp_progress
+  if progress_settings == nil or progress_settings.enabled == false then
+    return ""
+  end
+
+  local latest
+  for _, client in ipairs(get_attached_lsp_clients(bufnr)) do
+    local item = latest_progress_for_client(client.id)
+    if item ~= nil and (latest == nil or item.updated_at > latest.updated_at) then
+      latest = item
+    end
+  end
+
+  if latest == nil then
+    return ""
+  end
+
+  return escape_statusline(format_progress_text(latest, progress_settings))
 end
 
 local function get_git_info(kind, format)
@@ -189,6 +305,11 @@ function M.lsp()
     return lsp_default
   end
 
+  local progress = get_attached_lsp_progress(stbufnr())
+  if progress ~= "" then
+    return string.format("%%#St_Lsp#   %s ", progress)
+  end
+
   local name = get_attached_lsp_name(stbufnr())
   if name == "" then
     return lsp_default
@@ -232,6 +353,74 @@ local renderers = {
     return "%="
   end,
 }
+
+local function redraw_status()
+  vim.cmd("redrawstatus")
+end
+
+local function clear_client_progress(client_id)
+  if client_id == nil then
+    return
+  end
+
+  state.lsp_progress[client_id] = nil
+end
+
+local function update_lsp_progress(event)
+  local data = event.data or {}
+  local params = data.params or {}
+  local value = params.value
+  local client_id = data.client_id
+  local token = params.token
+  if client_id == nil or token == nil or type(value) ~= "table" then
+    return
+  end
+
+  local token_key = tostring(token)
+  if value.kind == "end" then
+    local entries = state.lsp_progress[client_id]
+    if entries ~= nil then
+      entries[token_key] = nil
+      if next(entries) == nil then
+        state.lsp_progress[client_id] = nil
+      end
+    end
+    redraw_status()
+    return
+  end
+
+  state.lsp_progress[client_id] = state.lsp_progress[client_id] or {}
+  state.lsp_progress[client_id][token_key] = {
+    updated_at = uv and uv.hrtime and uv.hrtime() or 0,
+    value = value,
+  }
+  redraw_status()
+end
+
+function M.start()
+  local group = api.nvim_create_augroup("SimpleUiStatusline", { clear = true })
+
+  if vim.fn.exists("##LspProgress") == 1 then
+    api.nvim_create_autocmd("LspProgress", {
+      group = group,
+      callback = update_lsp_progress,
+    })
+  end
+
+  api.nvim_create_autocmd("LspDetach", {
+    group = group,
+    callback = function(event)
+      local client_id = event.data and event.data.client_id or nil
+      local client = client_id and vim.lsp.get_client_by_id(client_id) or nil
+      if client ~= nil and client.attached_buffers and next(client.attached_buffers) ~= nil then
+        return
+      end
+
+      clear_client_progress(client_id)
+      redraw_status()
+    end,
+  })
+end
 
 function M.setup()
   local result = {}

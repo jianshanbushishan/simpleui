@@ -28,11 +28,13 @@ function M.setup(opts)
   local config = require("simpleui.config")
   local settings = config.setup(opts)
   local bufferline = require("simpleui.bufferline")
+  local statusline = require("simpleui.statusline")
 
   vim.opt.statusline = "%!v:lua.require('simpleui.statusline').setup()"
   vim.opt.tabline = "%!v:lua.require('simpleui.bufferline').setup()"
   vim.opt.showtabline = settings.bufferline.showtabline
 
+  statusline.start()
   bufferline.start()
   setup_keymaps(bufferline, settings.bufferline.keymaps)
 
