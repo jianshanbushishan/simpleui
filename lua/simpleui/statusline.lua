@@ -1,24 +1,16 @@
 local M = {}
 
+local config = require("simpleui.config")
+local uv = vim.uv or vim.loop
+local has_devicons, devicons = pcall(require, "nvim-web-devicons")
+
 local separators = {
   left = "",
   right = "",
 }
 
-local sep_l = separators["left"]
-local sep_r = separators["right"]
-
-M.modules = {
-  "mode",
-  "file",
-  "git",
-  "%=",
-  "%=",
-  "diagnostics",
-  "lsp",
-  "cwd",
-  "cursor",
-}
+local sep_l = separators.left
+local sep_r = separators.right
 
 local modes = {
   ["n"] = { "NORMAL", "Normal" },
@@ -65,21 +57,61 @@ local modes = {
   ["!"] = { "SHELL", "Terminal" },
 }
 
+local function basename(path)
+  return path:match("([^/\\]+)[/\\]*$")
+end
+
+local function settings()
+  return config.get().statusline
+end
+
+local function stwinid()
+  return vim.g.statusline_winid or 0
+end
+
 local function stbufnr()
-  return vim.api.nvim_win_get_buf(vim.g.statusline_winid or 0)
+  return vim.api.nvim_win_get_buf(stwinid())
 end
 
 local function is_activewin()
   return vim.api.nvim_get_current_win() == vim.g.statusline_winid
 end
 
-local function GetDiagnoosticInfo(level, format)
-  local num = #vim.diagnostic.get(stbufnr(), { severity = level })
-  if num < 1 then
+local function get_diagnostic_info(level, format)
+  local count = #vim.diagnostic.get(stbufnr(), { severity = level })
+  if count < 1 then
     return ""
   end
 
-  return string.format(format, num)
+  return string.format(format, count)
+end
+
+local function get_attached_lsp_name(bufnr)
+  local ok, clients = pcall(vim.lsp.get_clients, { bufnr = bufnr })
+  if ok and #clients > 0 then
+    return clients[1].name
+  end
+
+  if vim.lsp.get_active_clients == nil then
+    return ""
+  end
+
+  for _, client in ipairs(vim.lsp.get_active_clients()) do
+    if client.attached_buffers and client.attached_buffers[bufnr] then
+      return client.name
+    end
+  end
+
+  return ""
+end
+
+local function get_git_info(kind, format)
+  local status = vim.g.git_status_info
+  if status == nil or status[kind] == nil or status[kind] < 1 then
+    return ""
+  end
+
+  return string.format("%s%d", format, status[kind])
 end
 
 function M.diagnostics()
@@ -87,10 +119,10 @@ function M.diagnostics()
     return ""
   end
 
-  local err = GetDiagnoosticInfo(vim.diagnostic.severity.ERROR, "%%#St_lspError# %d ")
-  local warn = GetDiagnoosticInfo(vim.diagnostic.severity.WARN, "%%#St_lspWarning# %d ")
-  local hints = GetDiagnoosticInfo(vim.diagnostic.severity.HINT, "%%#St_lspHints#󰛩 %d ")
-  local info = GetDiagnoosticInfo(vim.diagnostic.severity.INFO, "%%#St_lspInfo#󰋼 %d ")
+  local err = get_diagnostic_info(vim.diagnostic.severity.ERROR, "%%#St_lspError# %d ")
+  local warn = get_diagnostic_info(vim.diagnostic.severity.WARN, "%%#St_lspWarning# %d ")
+  local hints = get_diagnostic_info(vim.diagnostic.severity.HINT, "%%#St_lspHints#󰛩 %d ")
+  local info = get_diagnostic_info(vim.diagnostic.severity.INFO, "%%#St_lspInfo#󰋼 %d ")
 
   return string.format(" %s%s%s%s", err, warn, hints, info)
 end
@@ -100,126 +132,114 @@ function M.mode()
     return ""
   end
 
-  local m = vim.api.nvim_get_mode().mode
+  local mode = modes[vim.api.nvim_get_mode().mode] or { "UNKNOWN", "Normal" }
+  local current_mode = "%#St_" .. mode[2] .. "Mode#  " .. mode[1]
+  local mode_sep = "%#St_" .. mode[2] .. "ModeSep#" .. sep_r
+  return current_mode .. mode_sep .. "%#ST_EmptySpace#" .. sep_r
+end
 
-  local current_mode = "%#St_" .. modes[m][2] .. "Mode#  " .. modes[m][1]
-  local mode_sep1 = "%#St_" .. modes[m][2] .. "ModeSep#" .. sep_r
-  return current_mode .. mode_sep1 .. "%#ST_EmptySpace#" .. sep_r
+local function get_buffer_label(bufnr)
+  local path = vim.api.nvim_buf_get_name(bufnr)
+  local buftype = vim.api.nvim_get_option_value("buftype", { buf = bufnr })
+
+  if buftype ~= "" and buftype ~= "nofile" then
+    return buftype
+  end
+
+  if string.find(path, "data/scratch/", 1, true) ~= nil then
+    return "Scratch"
+  end
+
+  return (path == "" and "Empty") or basename(path)
+end
+
+local function get_file_icon(name)
+  if not has_devicons or name == "Empty" then
+    return "󰈚"
+  end
+
+  return devicons.get_icon(name) or "󰈚"
 end
 
 function M.file()
-  local icon = "󰈚"
   local bufnr = stbufnr()
-  local path = vim.api.nvim_buf_get_name(bufnr)
-  local type = vim.api.nvim_get_option_value("buftype", { buf = bufnr })
-  local name = "Empty"
-  if type ~= "" and type ~= "nofile" then
-    name = type
-  else
-    local start, _ = string.find(path, "data/scratch/")
-    if start ~= nil then
-      name = "Scratch"
-    else
-      name = (path == "" and "Empty") or path:match("([^/\\]+)[/\\]*$")
-    end
-  end
-
-  if name ~= "Empty" then
-    local devicons_present, devicons = pcall(require, "nvim-web-devicons")
-
-    if devicons_present then
-      local ft_icon = devicons.get_icon(name)
-      icon = (ft_icon ~= nil and ft_icon) or icon
-    end
-  end
+  local name = get_buffer_label(bufnr)
+  local icon = get_file_icon(name)
 
   return string.format("%%#St_file# %s %s %%#St_file_sep#%s", icon, name, sep_r)
 end
 
-local function GetGitInfo(type, format)
-  local status = vim.g.git_status_info
-  if status == nil then
-    return ""
-  end
-
-  if status[type] == nil then
-    return ""
-  end
-
-  if status[type] < 1 then
-    return ""
-  end
-
-  return string.format("%s%d", format, status[type])
-end
-
 function M.git()
-  if vim.g.git_status_info == nil or vim.g.git_status_info.branch == nil then
+  local status = vim.g.git_status_info
+  if status == nil or status.branch == nil then
     return ""
   end
 
-  local added = GetGitInfo("added", "  ")
-  local modified = GetGitInfo("modified", "   ")
-  local removed = GetGitInfo("deleted", "  ")
-  local branch_name = vim.g.git_status_info.branch
+  local added = get_git_info("added", "  ")
+  local modified = get_git_info("modified", "   ")
+  local removed = get_git_info("deleted", "  ")
 
-  return string.format("%%#St_gitIcons# %s %s%s%s", branch_name, added, modified, removed)
+  return string.format("%%#St_gitIcons# %s %s%s%s", status.branch, added, modified, removed)
 end
 
 function M.lsp()
-  local lspPrefix = "  LSP ~"
-  local lspDefault = "%#St_Lsp#   LSP "
-  if vim.o.columns < 100 then
-    return lspDefault
+  local lsp_prefix = "  LSP ~"
+  local lsp_default = "%#St_Lsp#   LSP "
+  if vim.o.columns < settings().min_width.lsp or not rawget(vim, "lsp") then
+    return lsp_default
   end
 
-  local name = ""
-  for _, client in ipairs(vim.lsp.get_clients()) do
-    if client.attached_buffers[stbufnr()] then
-      name = client.name
-      break
-    end
-  end
-
+  local name = get_attached_lsp_name(stbufnr())
   if name == "" then
-    return lspDefault
+    return lsp_default
   end
 
-  return string.format("%%#St_Lsp# %s %s ", lspPrefix, name)
+  return string.format("%%#St_Lsp# %s %s ", lsp_prefix, name)
 end
 
 function M.cwd()
-  if vim.o.columns < 85 then
+  if vim.o.columns < settings().min_width.cwd or uv == nil or uv.cwd == nil then
     return ""
   end
 
-  local name = vim.uv.cwd()
+  local name = uv.cwd()
   if name == nil then
     return ""
   end
 
-  name = name:match("([^/\\]+)[/\\]*$") or name
+  name = basename(name) or name
   return string.format("%%#St_cwd_sep#%s%%#St_cwd_icon# 󰉋 %s %s", sep_l, name, sep_l)
 end
 
 function M.cursor()
-  local current_line = vim.api.nvim_win_get_cursor(0)[1]
-  local total_lines = vim.api.nvim_buf_line_count(0)
+  local current_line = vim.api.nvim_win_get_cursor(stwinid())[1]
+  local total_lines = math.max(vim.api.nvim_buf_line_count(stbufnr()), 1)
   local percentage = (current_line * 100.0) / total_lines
   return string.format("%%#St_pos_sep#%s%%#St_pos_icon#  %.1f  %s", sep_l, percentage, sep_l)
 end
 
 M["%="] = "%="
 
+local renderers = {
+  mode = M.mode,
+  file = M.file,
+  git = M.git,
+  diagnostics = M.diagnostics,
+  lsp = M.lsp,
+  cwd = M.cwd,
+  cursor = M.cursor,
+  ["%="] = function()
+    return "%="
+  end,
+}
+
 function M.setup()
   local result = {}
 
-  for _, module in ipairs(M.modules) do
-    local val = M[module]
-    if type(val) == "string" then
-      table.insert(result, val)
-    else
-      table.insert(result, val())
+  for _, module in ipairs(settings().modules) do
+    local renderer = renderers[module]
+    if renderer ~= nil then
+      table.insert(result, renderer())
     end
   end
 

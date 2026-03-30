@@ -1,138 +1,157 @@
 local M = {}
 
-local cur_buf = vim.api.nvim_get_current_buf
-local set_buf = vim.api.nvim_set_current_buf
-local buf_name = vim.api.nvim_buf_get_name
-local get_hl = vim.api.nvim_get_hl
-local get_opt = vim.api.nvim_get_option_value
-local autocmd = vim.api.nvim_create_autocmd
+local api = vim.api
+local fn = vim.fn
+local has_devicons, devicons = pcall(require, "nvim-web-devicons")
 
-vim.t.bufs = vim.t.bufs
-  or vim.tbl_filter(function(buf)
-    return vim.fn.buflisted(buf) == 1
-  end, vim.api.nvim_list_bufs())
+local cur_buf = api.nvim_get_current_buf
+local set_buf = api.nvim_set_current_buf
+local buf_name = api.nvim_buf_get_name
+local get_hl = api.nvim_get_hl
+local get_opt = api.nvim_get_option_value
+local autocmd = api.nvim_create_autocmd
+local set_hl = api.nvim_set_hl
 
-autocmd({ "BufAdd", "BufEnter" }, {
-  callback = function(args)
-    local bufs = vim.t.bufs
-    local is_curbuf = cur_buf() == args.buf
+local highlight_cache = {}
 
-    if bufs == nil then
-      bufs = cur_buf() == args.buf and {} or { args.buf }
-    else
-      -- check for duplicates
-      if
-        not vim.tbl_contains(bufs, args.buf)
-        and (args.event == "BufEnter" or not is_curbuf or get_opt("buflisted", { buf = args.buf }))
-        and vim.api.nvim_buf_is_valid(args.buf)
-        and get_opt("buflisted", { buf = args.buf })
-      then
-        table.insert(bufs, args.buf)
-      end
-    end
-
-    -- remove unnamed buffer which isnt current buf & modified
-    if args.event == "BufAdd" then
-      if #vim.api.nvim_buf_get_name(bufs[1]) == 0 and not get_opt("modified", { buf = bufs[1] }) then
-        table.remove(bufs, 1)
-      end
-    end
-
-    vim.t.bufs = bufs
-  end,
-})
-
-autocmd("BufDelete", {
-  callback = function(args)
-    local bufs = vim.t.bufs
-    if bufs == nil then
-      return
-    end
-    for i, bufnr in ipairs(bufs) do
-      if bufnr == args.buf then
-        table.remove(bufs, i)
-        vim.t.bufs = bufs
-        break
-      end
-    end
-  end,
-})
-
-local function filename(str)
-  return str:match("([^/\\]+)[/\\]*$")
+local function is_listed_buffer(bufnr)
+  return api.nvim_buf_is_valid(bufnr) and get_opt("buflisted", { buf = bufnr })
 end
 
-local function new_hightlight(group1, group2, is_curbuf)
-  local fg = get_hl(0, { name = group1 }).fg
-  local fg2 = get_hl(0, { name = "Tb" .. group2 }).fg
-  local bg = get_hl(0, { name = "Tb" .. group2 }).bg
+local function visible_buffers()
+  return vim.tbl_filter(is_listed_buffer, api.nvim_list_bufs())
+end
+
+local function sync_buffers()
+  vim.t.bufs = vim.tbl_filter(is_listed_buffer, vim.t.bufs or visible_buffers())
+  return vim.t.bufs
+end
+
+local function filename(path)
+  return path:match("([^/\\]+)[/\\]*$")
+end
+
+local function ensure_highlight(group1, group2, is_curbuf)
   local hl_name = group1 .. group2
-  if is_curbuf then
-    vim.api.nvim_set_hl(0, hl_name, { fg = fg, bg = bg })
-  else
-    vim.api.nvim_set_hl(0, hl_name, { fg = fg2, bg = bg })
+  local cache_key = table.concat({ hl_name, tostring(is_curbuf) }, ":")
+  if highlight_cache[cache_key] then
+    return string.format("%%#%s#", hl_name)
   end
+
+  local ok_base, base_hl = pcall(get_hl, 0, { name = "Tb" .. group2 })
+  if not ok_base then
+    return ""
+  end
+
+  local ok_group, group_hl = pcall(get_hl, 0, { name = group1 })
+  local fg = ok_group and group_hl.fg or base_hl.fg
+  set_hl(0, hl_name, { fg = is_curbuf and fg or base_hl.fg, bg = base_hl.bg })
+  highlight_cache[cache_key] = true
   return string.format("%%#%s#", hl_name)
 end
 
-function M.highlight_txt(str, hl)
-  str = str or ""
-  local a = "%#Tb" .. hl .. "#" .. str
-  return a
+local function reset_highlights()
+  highlight_cache = {}
 end
 
-function M.format_buf(buf_nr, idx)
-  local len = 0
-  local icon = "󰈚"
-  local is_curbuf = cur_buf() == buf_nr
-  local tbHlName = ""
-  local icon_hl = new_hightlight("DevIconDefault", tbHlName, is_curbuf)
-  local status = ""
-  local status_hl = ""
-  local sep = ""
-  local sep_hl = ""
-
-  if is_curbuf then
-    sep = "▌"
-    status_hl = "BufOnModified"
-    tbHlName = "BufOn"
-    sep_hl = "BufSepOn"
-  else
-    sep = "|"
-    status_hl = "BufOffModified"
-    tbHlName = "BufOff"
-    sep_hl = "BufSepOff"
+local function remove_initial_empty_buffer(bufs)
+  if bufs[1] == nil then
+    return
   end
 
-  local name = filename(buf_name(buf_nr))
-  name = name or "No Name"
+  if #buf_name(bufs[1]) == 0 and not get_opt("modified", { buf = bufs[1] }) then
+    table.remove(bufs, 1)
+  end
+end
 
-  if name ~= "No Name" then
-    local devicon, devicon_hl = require("nvim-web-devicons").get_icon(name)
+local function track_buffer(args)
+  local bufs = vim.t.bufs
+  local is_curbuf = cur_buf() == args.buf
 
+  if bufs == nil then
+    bufs = cur_buf() == args.buf and {} or { args.buf }
+  elseif
+    not vim.tbl_contains(bufs, args.buf)
+    and (args.event == "BufEnter" or not is_curbuf or is_listed_buffer(args.buf))
+    and is_listed_buffer(args.buf)
+  then
+    table.insert(bufs, args.buf)
+  end
+
+  if args.event == "BufAdd" then
+    remove_initial_empty_buffer(bufs)
+  end
+
+  vim.t.bufs = bufs
+end
+
+local function untrack_buffer(args)
+  local bufs = vim.t.bufs
+  if bufs == nil then
+    return
+  end
+
+  for index, bufnr in ipairs(bufs) do
+    if bufnr == args.buf then
+      table.remove(bufs, index)
+      vim.t.bufs = bufs
+      break
+    end
+  end
+end
+
+local function get_buffer_style(bufnr)
+  local is_current = cur_buf() == bufnr
+  return {
+    is_current = is_current,
+    separator = is_current and "▌" or "|",
+    line_highlight = is_current and "BufOn" or "BufOff",
+    separator_highlight = is_current and "BufSepOn" or "BufSepOff",
+    modified_highlight = is_current and "BufOnModified" or "BufOffModified",
+  }
+end
+
+local function get_buffer_icon(name, line_highlight, is_current)
+  local icon = "󰈚"
+  local icon_highlight = ensure_highlight("DevIconDefault", line_highlight, is_current)
+
+  if has_devicons and name ~= "No Name" then
+    local devicon, devicon_hl = devicons.get_icon(name)
     if devicon then
       icon = devicon
-      icon_hl = new_hightlight(devicon_hl, tbHlName, is_curbuf)
+      icon_highlight = ensure_highlight(devicon_hl, line_highlight, is_current)
     end
   end
 
-  len = len + #sep
-  sep = M.highlight_txt(sep, sep_hl)
-  name = string.format(" %d. %s", idx, name)
-  len = len + #name
-  name = M.highlight_txt(name, tbHlName)
-  local mod = get_opt("mod", { buf = buf_nr })
-  if mod then
-    status = M.highlight_txt(" ", status_hl)
-    len = len + 2
-  end
+  return icon, icon_highlight
+end
 
-  local str = string.format("%s%s %s%s%s ", sep, name, status, icon_hl, icon)
-  return len + 4, str
+function M.highlight_txt(str, hl)
+  return "%#Tb" .. hl .. "#" .. (str or "")
+end
+
+function M.format_buf(bufnr, idx)
+  local style = get_buffer_style(bufnr)
+  local name = filename(buf_name(bufnr)) or "No Name"
+  local icon, icon_hl = get_buffer_icon(name, style.line_highlight, style.is_current)
+  local label = string.format(" %d. %s", idx, name)
+  local modified = get_opt("modified", { buf = bufnr })
+  local status = modified and M.highlight_txt(" ", style.modified_highlight) or ""
+  local text = string.format(
+    "%s%s %s%s%s ",
+    M.highlight_txt(style.separator, style.separator_highlight),
+    M.highlight_txt(label, style.line_highlight),
+    status,
+    icon_hl,
+    icon
+  )
+  local width = fn.strdisplaywidth(style.separator .. label .. (modified and "  " or " ") .. icon .. " ")
+
+  return width, text
 end
 
 local function buf_index(bufnr)
-  for i, value in ipairs(vim.t.bufs) do
+  for i, value in ipairs(vim.t.bufs or {}) do
     if value == bufnr then
       return i
     end
@@ -140,60 +159,63 @@ local function buf_index(bufnr)
 end
 
 function M.next()
-  local bufs = vim.t.bufs
-  local curbufIndex = buf_index(cur_buf())
-
-  if not curbufIndex then
-    set_buf(vim.t.bufs[1])
+  local bufs = sync_buffers()
+  if #bufs == 0 then
     return
   end
 
-  set_buf((curbufIndex == #bufs and bufs[1]) or bufs[curbufIndex + 1])
+  local curbuf_index = buf_index(cur_buf())
+  if not curbuf_index then
+    set_buf(bufs[1])
+    return
+  end
+
+  set_buf((curbuf_index == #bufs and bufs[1]) or bufs[curbuf_index + 1])
 end
 
 function M.prev()
-  local bufs = vim.t.bufs
-  local curbufIndex = buf_index(cur_buf())
-
-  if not curbufIndex then
-    set_buf(vim.t.bufs[1])
+  local bufs = sync_buffers()
+  if #bufs == 0 then
     return
   end
 
-  set_buf((curbufIndex == 1 and bufs[#bufs]) or bufs[curbufIndex - 1])
+  local curbuf_index = buf_index(cur_buf())
+  if not curbuf_index then
+    set_buf(bufs[1])
+    return
+  end
+
+  set_buf((curbuf_index == 1 and bufs[#bufs]) or bufs[curbuf_index - 1])
 end
 
 function M.close_buffer(bufnr)
   bufnr = bufnr or cur_buf()
 
   if vim.bo[bufnr].buftype == "terminal" then
-    vim.cmd(vim.bo.buflisted and "set nobl | enew" or "hide")
+    vim.cmd(vim.bo[bufnr].buflisted and "set nobl | enew" or "hide")
   else
-    local curBufIndex = buf_index(bufnr)
-    local bufhidden = vim.bo.bufhidden
+    local curbuf_index = buf_index(bufnr)
+    local bufhidden = vim.bo[bufnr].bufhidden
 
-    -- force close floating wins or nonbuflisted
-    if vim.api.nvim_win_get_config(0).zindex then
+    if api.nvim_win_get_config(0).zindex then
       vim.cmd("bw")
       return
-
-      -- handle listed bufs
-    elseif curBufIndex and #vim.t.bufs > 1 then
-      local newBufIndex = curBufIndex == #vim.t.bufs and -1 or 1
-      vim.cmd("b" .. vim.t.bufs[curBufIndex + newBufIndex])
-
-      -- handle unlisted
-    elseif not vim.bo.buflisted then
-      local tmpbufnr = vim.t.bufs[1]
-      vim.api.nvim_set_current_win(vim.fn.bufwinid(bufnr))
-      vim.api.nvim_set_current_buf(tmpbufnr)
+    elseif curbuf_index and #(vim.t.bufs or {}) > 1 then
+      local new_index = curbuf_index == #vim.t.bufs and -1 or 1
+      vim.cmd("b" .. vim.t.bufs[curbuf_index + new_index])
+    elseif not vim.bo[bufnr].buflisted then
+      local tmpbufnr = (vim.t.bufs or {})[1]
+      if tmpbufnr ~= nil then
+        api.nvim_set_current_win(fn.bufwinid(bufnr))
+        api.nvim_set_current_buf(tmpbufnr)
+      end
       vim.cmd("bw" .. bufnr)
       return
     else
       vim.cmd("enew")
     end
 
-    if not (bufhidden == "delete") then
+    if bufhidden ~= "delete" then
       vim.cmd("confirm bd" .. bufnr)
     end
   end
@@ -202,48 +224,71 @@ function M.close_buffer(bufnr)
 end
 
 function M.close_all_bufs(include_cur_buf)
-  local bufs = vim.t.bufs
+  local bufs = vim.deepcopy(sync_buffers())
 
-  if include_cur_buf ~= nil and not include_cur_buf then
-    table.remove(bufs, buf_index(cur_buf()))
+  if include_cur_buf == false then
+    local current_index = buf_index(cur_buf())
+    if current_index then
+      table.remove(bufs, current_index)
+    end
   end
 
-  for _, buf in ipairs(bufs) do
-    M.close_buffer(buf)
+  for _, bufnr in ipairs(bufs) do
+    if api.nvim_buf_is_valid(bufnr) then
+      M.close_buffer(bufnr)
+    end
   end
 end
 
-local function get_len(tbl)
-  local sum = 0
-  for _, val in ipairs(tbl) do
-    sum = sum + val
-  end
-  return sum
+M.closeAllBufs = M.close_all_bufs
+
+function M.start()
+  vim.t.bufs = vim.t.bufs or visible_buffers()
+
+  local group = api.nvim_create_augroup("SimpleUiBufferline", { clear = true })
+  autocmd({ "BufAdd", "BufEnter" }, {
+    group = group,
+    callback = track_buffer,
+  })
+  autocmd("BufDelete", {
+    group = group,
+    callback = untrack_buffer,
+  })
+  autocmd("ColorScheme", {
+    group = group,
+    callback = reset_highlights,
+  })
+end
+
+local function listed_normal_buffers()
+  return vim.tbl_filter(function(bufnr)
+    return get_opt("buftype", { buf = bufnr }) == ""
+  end, sync_buffers())
 end
 
 function M.setup()
   local buffers = {}
-  local lens = {}
+  local lengths = {}
+  local total_len = 0
   local has_current = false
 
-  vim.t.bufs = vim.tbl_filter(vim.api.nvim_buf_is_valid, vim.t.bufs)
-  vim.t.bufs = vim.tbl_filter(function(bufnr)
-    return get_opt("buftype", { buf = bufnr }) == ""
-  end, vim.t.bufs)
+  vim.t.bufs = listed_normal_buffers()
 
-  for idx, nr in ipairs(vim.t.bufs) do
-    if get_len(lens) > vim.o.columns then
+  for idx, bufnr in ipairs(vim.t.bufs) do
+    local len, str = M.format_buf(bufnr, idx)
+    table.insert(buffers, str)
+    table.insert(lengths, len)
+    total_len = total_len + len
+    has_current = cur_buf() == bufnr or has_current
+
+    while total_len > vim.o.columns and #buffers > 0 do
       if has_current then
         break
       end
 
+      total_len = total_len - table.remove(lengths, 1)
       table.remove(buffers, 1)
     end
-
-    has_current = cur_buf() == nr or has_current
-    local len, str = M.format_buf(nr, idx)
-    table.insert(buffers, str)
-    table.insert(lens, len)
   end
 
   return table.concat(buffers) .. M.highlight_txt("%=", "Fill")

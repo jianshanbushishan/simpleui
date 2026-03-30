@@ -47,6 +47,33 @@ use {
 }
 ```
 
+也支持传入配置项来自定义模块顺序、宽度阈值和快捷键:
+
+```lua
+require("simpleui").setup({
+  statusline = {
+    modules = { "mode", "file", "%=", "git", "diagnostics", "cursor" },
+    min_width = {
+      lsp = 120,
+      cwd = 90,
+    },
+  },
+  bufferline = {
+    showtabline = 2,
+    keymaps = {
+      prev = "<A-h>",
+      next = "<A-l>",
+      close = "<A-w>",
+      close_all_but_current = "<A-S-w>",
+    },
+  },
+  gitstatus = {
+    refresh_events = { "BufWritePost", "DirChanged" },
+    session_load_delay = 150,
+  },
+})
+```
+
 ## 快捷键
 
 - `<left>`: 切换到上一个缓冲区

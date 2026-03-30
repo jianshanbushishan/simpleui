@@ -1,28 +1,44 @@
 local M = {}
 
-function M.setup()
-  local modules = require("simpleui.statusline").modules
-  if vim.tbl_contains(modules, "git") then
-    local git_updater = require("simpleui.gitstatus")
-    git_updater.start()
+local function setup_keymaps(bufferline, keymaps)
+  if not keymaps.enabled then
+    return
   end
+
+  local map = vim.keymap.set
+  local opts = { silent = keymaps.silent }
+
+  if keymaps.prev then
+    map("n", keymaps.prev, bufferline.prev, vim.tbl_extend("force", opts, { desc = "SimpleUI previous buffer" }))
+  end
+  if keymaps.next then
+    map("n", keymaps.next, bufferline.next, vim.tbl_extend("force", opts, { desc = "SimpleUI next buffer" }))
+  end
+  if keymaps.close then
+    map("n", keymaps.close, bufferline.close_buffer, vim.tbl_extend("force", opts, { desc = "SimpleUI close buffer" }))
+  end
+  if keymaps.close_all_but_current then
+    map("n", keymaps.close_all_but_current, function()
+      bufferline.close_all_bufs(false)
+    end, vim.tbl_extend("force", opts, { desc = "SimpleUI close other buffers" }))
+  end
+end
+
+function M.setup(opts)
+  local config = require("simpleui.config")
+  local settings = config.setup(opts)
+  local bufferline = require("simpleui.bufferline")
 
   vim.opt.statusline = "%!v:lua.require('simpleui.statusline').setup()"
   vim.opt.tabline = "%!v:lua.require('simpleui.bufferline').setup()"
-  vim.opt.showtabline = 2
+  vim.opt.showtabline = settings.bufferline.showtabline
 
-  vim.keymap.set("n", "<left>", function()
-    require("simpleui.bufferline").prev()
-  end)
-  vim.keymap.set("n", "<right>", function()
-    require("simpleui.bufferline").next()
-  end)
-  vim.keymap.set("n", "<del>", function()
-    require("simpleui.bufferline").close_buffer()
-  end)
-  vim.keymap.set("n", "<s-del>", function()
-    require("simpleui.bufferline").closeAllBufs(false)
-  end)
+  bufferline.start()
+  setup_keymaps(bufferline, settings.bufferline.keymaps)
+
+  if settings.gitstatus.enabled and vim.tbl_contains(settings.statusline.modules, "git") then
+    require("simpleui.gitstatus").start(settings.gitstatus)
+  end
 end
 
 return M
