@@ -138,7 +138,8 @@ function M.format_buf(bufnr, idx)
   local modified = get_opt("modified", { buf = bufnr })
   local status = modified and M.highlight_txt(" ", style.modified_highlight) or ""
   local text = string.format(
-    "%s%s %s%s%s ",
+    "%%%d@v:lua.__simpleui_bufferline_click@%s%s %s%s%s %%T",
+    bufnr,
     M.highlight_txt(style.separator, style.separator_highlight),
     M.highlight_txt(label, style.line_highlight),
     status,
@@ -148,6 +149,16 @@ function M.format_buf(bufnr, idx)
   local width = fn.strdisplaywidth(style.separator .. label .. (modified and "  " or " ") .. icon .. " ")
 
   return width, text
+end
+
+function M.click_handler(bufnr, _, button)
+  if button ~= "l" and button ~= "m" and button ~= "r" then
+    return
+  end
+
+  if api.nvim_buf_is_valid(bufnr) and is_listed_buffer(bufnr) then
+    set_buf(bufnr)
+  end
 end
 
 local function buf_index(bufnr)
@@ -244,6 +255,7 @@ M.closeAllBufs = M.close_all_bufs
 
 function M.start()
   vim.t.bufs = vim.t.bufs or visible_buffers()
+  _G.__simpleui_bufferline_click = M.click_handler
 
   local group = api.nvim_create_augroup("SimpleUiBufferline", { clear = true })
   autocmd({ "BufAdd", "BufEnter" }, {
