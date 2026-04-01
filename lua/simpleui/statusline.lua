@@ -369,7 +369,7 @@ function M.diagnostics()
     return nil
   end
 
-  return segment("StatusLine", " " .. table.concat(parts))
+  return segment("St_diagnostics", " " .. table.concat(parts))
 end
 
 function M.mode()
@@ -409,7 +409,7 @@ function M.filesize()
     return nil
   end
 
-  return segment("St_file", " " .. formatted .. " ")
+  return segment("St_filesize", " " .. formatted .. " ")
 end
 
 function M.git()
@@ -422,8 +422,9 @@ function M.git()
   local modified = status.modified and status.modified > 0 and ("  " .. status.modified) or ""
   local removed = status.deleted and status.deleted > 0 and ("  " .. status.deleted) or ""
 
-  return segment("StatusLine", hl("St_gitIcons")
+  return segment("St_git", hl("St_gitIcons")
     .. " "
+    .. hl("St_git")
     .. escape_statusline(status.branch)
     .. added
     .. modified
@@ -432,26 +433,26 @@ function M.git()
 end
 
 function M.lsp()
-  local lsp_name = ""
-  local label = "LSP"
+  if not rawget(vim, "lsp") then
+    return nil
+  end
 
-  if rawget(vim, "lsp") then
-    local name = get_attached_lsp_name(stbufnr())
-    if name ~= "" then
-      lsp_name = escape_statusline(name)
-      label = "LSP " .. lsp_name
-    end
+  local name = get_attached_lsp_name(stbufnr())
+  if name == "" then
+    return nil
+  end
 
-    if vim.o.columns >= settings().min_width.lsp then
-      local progress = get_attached_lsp_progress(stbufnr())
-      if progress ~= "" then
-        local prefix = lsp_name ~= "" and ("LSP " .. lsp_name) or "LSP"
-        label = prefix .. " " .. progress
-      end
+  local lsp_name = escape_statusline(name)
+  local label = "LSP " .. lsp_name
+
+  if vim.o.columns >= settings().min_width.lsp then
+    local progress = get_attached_lsp_progress(stbufnr())
+    if progress ~= "" then
+      label = "LSP " .. lsp_name .. " " .. progress
     end
   end
 
-  return segment("St_CommandMode", "  " .. label .. " ")
+  return segment("St_Lsp", "  " .. hl("St_LspMsg") .. label .. " ")
 end
 
 function M.cwd()
@@ -465,19 +466,19 @@ function M.cwd()
   end
 
   name = escape_statusline(basename(name) or name)
-  return segment("St_cwd_icon", " 󰉋 " .. name .. " ")
+  return segment("St_cwd_text", hl("St_cwd_icon") .. " 󰉋 " .. hl("St_cwd_text") .. name .. " ")
 end
 
 function M.linecol()
   local pos = api.nvim_win_get_cursor(stwinid())
-  return segment("St_file", string.format(" Ln %d:%d ", pos[1], pos[2] + 1))
+  return segment("St_linecol", string.format(" Ln %d:%d ", pos[1], pos[2] + 1))
 end
 
 function M.cursor()
   local current_line = api.nvim_win_get_cursor(stwinid())[1]
   local total_lines = math.max(api.nvim_buf_line_count(stbufnr()), 1)
   local percentage = (current_line * 100.0) / total_lines
-  return segment("St_pos_icon", string.format("  %.1f%%%% ", percentage))
+  return segment("St_cursor", string.format("  %.1f%%%% ", percentage))
 end
 
 local renderers = {
