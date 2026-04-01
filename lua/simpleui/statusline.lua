@@ -409,7 +409,7 @@ function M.filesize()
     return nil
   end
 
-  return segment("St_filesize", " " .. formatted .. " ")
+  return segment("St_filesize", "  " .. formatted .. " ")
 end
 
 function M.git()
@@ -471,7 +471,7 @@ end
 
 function M.linecol()
   local pos = api.nvim_win_get_cursor(stwinid())
-  return segment("St_linecol", string.format(" Ln %d:%d ", pos[1], pos[2] + 1))
+  return segment("St_linecol", string.format(" 󰍉 %d:%d ", pos[1], pos[2] + 1))
 end
 
 function M.cursor()

@@ -11,9 +11,9 @@ local defaults = {
       "%=",
       "diagnostics",
       "lsp",
-      "cwd",
       "linecol",
       "cursor",
+      "cwd",
     },
     min_width = {
       lsp = 100,
