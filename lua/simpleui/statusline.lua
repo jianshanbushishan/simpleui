@@ -4,8 +4,10 @@ local config = require("simpleui.config")
 local api = vim.api
 local uv = vim.uv or vim.loop
 local has_devicons, devicons = pcall(require, "nvim-web-devicons")
+
 local state = {
   lsp_progress = {},
+  sep_cache = {},
 }
 
 local separators = {
@@ -17,48 +19,51 @@ local sep_l = separators.left
 local sep_r = separators.right
 
 local modes = {
+  -- Normal
   ["n"] = { "NORMAL", "Normal" },
-  ["no"] = { "NORMAL (no)", "Normal" },
-  ["nov"] = { "NORMAL (nov)", "Normal" },
-  ["noV"] = { "NORMAL (noV)", "Normal" },
-  ["noCTRL-V"] = { "NORMAL", "Normal" },
-  ["niI"] = { "NORMAL i", "Normal" },
-  ["niR"] = { "NORMAL r", "Normal" },
-  ["niV"] = { "NORMAL v", "Normal" },
-  ["nt"] = { "NTERMINAL", "NTerminal" },
-  ["ntT"] = { "NTERMINAL (ntT)", "NTerminal" },
-
+  ["no"] = { "O-PENDING", "Normal" },
+  ["nov"] = { "O-PENDING", "Normal" },
+  ["noV"] = { "O-PENDING", "Normal" },
+  ["noCTRL-V"] = { "O-PENDING", "Normal" },
+  ["niI"] = { "NORMAL", "Normal" },
+  ["niR"] = { "NORMAL", "Normal" },
+  ["niV"] = { "NORMAL", "Normal" },
+  -- Visual
   ["v"] = { "VISUAL", "Visual" },
-  ["vs"] = { "V-CHAR (Ctrl O)", "Visual" },
   ["V"] = { "V-LINE", "Visual" },
+  [string.char(22)] = { "V-BLOCK", "Visual" },
+  ["vs"] = { "VISUAL", "Visual" },
   ["Vs"] = { "V-LINE", "Visual" },
-  [""] = { "V-BLOCK", "Visual" },
-
+  -- Insert
   ["i"] = { "INSERT", "Insert" },
-  ["ic"] = { "INSERT (completion)", "Insert" },
-  ["ix"] = { "INSERT completion", "Insert" },
-
+  ["ic"] = { "INSERT", "Insert" },
+  ["ix"] = { "INSERT", "Insert" },
+  -- Terminal
   ["t"] = { "TERMINAL", "Terminal" },
-
+  ["nt"] = { "TERMINAL", "Terminal" },
+  ["ntT"] = { "TERMINAL", "Terminal" },
+  ["!"] = { "SHELL", "Terminal" },
+  -- Replace
   ["R"] = { "REPLACE", "Replace" },
-  ["Rc"] = { "REPLACE (Rc)", "Replace" },
-  ["Rx"] = { "REPLACEa (Rx)", "Replace" },
+  ["Rc"] = { "REPLACE", "Replace" },
+  ["Rx"] = { "REPLACE", "Replace" },
   ["Rv"] = { "V-REPLACE", "Replace" },
-  ["Rvc"] = { "V-REPLACE (Rvc)", "Replace" },
-  ["Rvx"] = { "V-REPLACE (Rvx)", "Replace" },
-
+  ["Rvc"] = { "V-REPLACE", "Replace" },
+  ["Rvx"] = { "V-REPLACE", "Replace" },
+  -- Select
   ["s"] = { "SELECT", "Select" },
   ["S"] = { "S-LINE", "Select" },
-  [""] = { "S-BLOCK", "Select" },
+  [string.char(19)] = { "S-BLOCK", "Select" },
+  -- Command
   ["c"] = { "COMMAND", "Command" },
   ["cv"] = { "COMMAND", "Command" },
   ["ce"] = { "COMMAND", "Command" },
   ["cr"] = { "COMMAND", "Command" },
+  -- Prompt / Confirm
   ["r"] = { "PROMPT", "Confirm" },
   ["rm"] = { "MORE", "Confirm" },
   ["r?"] = { "CONFIRM", "Confirm" },
   ["x"] = { "CONFIRM", "Confirm" },
-  ["!"] = { "SHELL", "Terminal" },
 }
 
 local function basename(path)
@@ -74,20 +79,90 @@ local function stwinid()
 end
 
 local function stbufnr()
-  return vim.api.nvim_win_get_buf(stwinid())
+  return api.nvim_win_get_buf(stwinid())
 end
 
 local function is_activewin()
-  return vim.api.nvim_get_current_win() == vim.g.statusline_winid
+  return api.nvim_get_current_win() == vim.g.statusline_winid
 end
 
-local function get_diagnostic_info(level, format)
-  local count = #vim.diagnostic.get(stbufnr(), { severity = level })
-  if count < 1 then
-    return ""
+local function escape_statusline(text)
+  return (text or ""):gsub("%%", "%%%%")
+end
+
+local function hl_exists(name)
+  local ok, spec = pcall(api.nvim_get_hl, 0, { name = name, link = false })
+  return ok and spec ~= nil and next(spec) ~= nil
+end
+
+local function hl(name, fallback)
+  if name ~= nil and hl_exists(name) then
+    return "%#" .. name .. "#"
   end
 
-  return string.format(format, count)
+  if fallback ~= nil and hl_exists(fallback) then
+    return "%#" .. fallback .. "#"
+  end
+
+  return "%#StatusLine#"
+end
+
+local function hl_name(name, fallback)
+  if name ~= nil and hl_exists(name) then
+    return name
+  end
+
+  if fallback ~= nil and hl_exists(fallback) then
+    return fallback
+  end
+
+  return "StatusLine"
+end
+
+local function hl_bg(name, fallback)
+  local resolved = hl_name(name, fallback)
+  local ok, spec = pcall(api.nvim_get_hl, 0, { name = resolved, link = false })
+  if not ok or spec == nil then
+    return nil
+  end
+
+  return spec.bg
+end
+
+local function transition_sep(direction, from_group, to_group)
+  local from_name = hl_name(from_group)
+  local to_name = hl_name(to_group)
+  local from_bg = hl_bg(from_name)
+  local to_bg = hl_bg(to_name)
+  if from_bg == nil or to_bg == nil then
+    return hl("StatusLine")
+  end
+
+  local cache_key = table.concat({ direction, from_name, to_name }, ":")
+  local group = state.sep_cache[cache_key]
+  if group == nil then
+    group = "SimpleUiSep_" .. direction .. "_" .. from_name .. "_" .. to_name
+    if direction == "left" then
+      api.nvim_set_hl(0, group, { fg = to_bg, bg = from_bg })
+    else
+      api.nvim_set_hl(0, group, { fg = from_bg, bg = to_bg })
+    end
+    state.sep_cache[cache_key] = group
+  end
+
+  return "%#" .. group .. "#"
+end
+
+local function segment(body_group, text)
+  local resolved = hl_name(body_group)
+  return {
+    group = resolved,
+    text = hl(resolved) .. text,
+  }
+end
+
+local function get_diagnostic_count(level)
+  return #vim.diagnostic.get(stbufnr(), { severity = level })
 end
 
 local function get_attached_lsp_clients(bufnr)
@@ -122,10 +197,6 @@ local function get_attached_lsp_name(bufnr)
   end
 
   return clients[1].name
-end
-
-local function escape_statusline(text)
-  return (text or ""):gsub("%%", "%%%%")
 end
 
 local function truncate_text(text, max_length)
@@ -221,42 +292,9 @@ local function get_attached_lsp_progress(bufnr)
   return escape_statusline(format_progress_text(latest, progress_settings))
 end
 
-local function get_git_info(kind, format)
-  local status = vim.g.git_status_info
-  if status == nil or status[kind] == nil or status[kind] < 1 then
-    return ""
-  end
-
-  return string.format("%s%d", format, status[kind])
-end
-
-function M.diagnostics()
-  if not rawget(vim, "lsp") then
-    return ""
-  end
-
-  local err = get_diagnostic_info(vim.diagnostic.severity.ERROR, "%%#St_lspError# %d ")
-  local warn = get_diagnostic_info(vim.diagnostic.severity.WARN, "%%#St_lspWarning# %d ")
-  local hints = get_diagnostic_info(vim.diagnostic.severity.HINT, "%%#St_lspHints#󰛩 %d ")
-  local info = get_diagnostic_info(vim.diagnostic.severity.INFO, "%%#St_lspInfo#󰋼 %d ")
-
-  return string.format(" %s%s%s%s", err, warn, hints, info)
-end
-
-function M.mode()
-  if not is_activewin() then
-    return ""
-  end
-
-  local mode = modes[vim.api.nvim_get_mode().mode] or { "UNKNOWN", "Normal" }
-  local current_mode = "%#St_" .. mode[2] .. "Mode#  " .. mode[1]
-  local mode_sep = "%#St_" .. mode[2] .. "ModeSep#" .. sep_r
-  return current_mode .. mode_sep .. "%#ST_EmptySpace#" .. sep_r
-end
-
 local function get_buffer_label(bufnr)
-  local path = vim.api.nvim_buf_get_name(bufnr)
-  local buftype = vim.api.nvim_get_option_value("buftype", { buf = bufnr })
+  local path = api.nvim_buf_get_name(bufnr)
+  local buftype = api.nvim_get_option_value("buftype", { buf = bufnr })
 
   if buftype ~= "" and buftype ~= "nofile" then
     return buftype
@@ -277,77 +315,180 @@ local function get_file_icon(name)
   return devicons.get_icon(name) or "󰈚"
 end
 
+local function format_file_size(bytes)
+  if bytes == nil or bytes < 1 then
+    return ""
+  end
+
+  local units = { "", "KB", "MB", "GB", "TB" }
+  local i = 1
+  local size = bytes
+  while size >= 1024 and i < #units do
+    size = size / 1024
+    i = i + 1
+  end
+
+  if i == 1 then
+    return string.format("%dB", size)
+  end
+
+  return string.format("%.1f%s", size, units[i])
+end
+
+local function statusline_bg_hl()
+  return hl("StatusLine")
+end
+
+function M.diagnostics()
+  if not rawget(vim, "lsp") then
+    return nil
+  end
+
+  local parts = {}
+  local err_count = get_diagnostic_count(vim.diagnostic.severity.ERROR)
+  if err_count > 0 then
+    table.insert(parts, hl("St_lspError") .. " " .. err_count .. " ")
+  end
+
+  local warn_count = get_diagnostic_count(vim.diagnostic.severity.WARN)
+  if warn_count > 0 then
+    table.insert(parts, hl("St_lspWarning") .. " " .. warn_count .. " ")
+  end
+
+  local hint_count = get_diagnostic_count(vim.diagnostic.severity.HINT)
+  if hint_count > 0 then
+    table.insert(parts, hl("St_LspHints", "St_lspHints") .. "󰛩 " .. hint_count .. " ")
+  end
+
+  local info_count = get_diagnostic_count(vim.diagnostic.severity.INFO)
+  if info_count > 0 then
+    table.insert(parts, hl("St_LspInfo", "St_lspInfo") .. "󰋼 " .. info_count .. " ")
+  end
+
+  if #parts == 0 then
+    return nil
+  end
+
+  return segment("StatusLine", " " .. table.concat(parts))
+end
+
+function M.mode()
+  if not is_activewin() then
+    return nil
+  end
+
+  local mode = modes[api.nvim_get_mode().mode] or { "UNKNOWN", "Normal" }
+  return segment("St_" .. mode[2] .. "Mode", "  " .. mode[1] .. " ")
+end
+
 function M.file()
-  local bufnr = stbufnr()
-  local name = get_buffer_label(bufnr)
+  local name = escape_statusline(get_buffer_label(stbufnr()))
   local icon = get_file_icon(name)
 
-  return string.format("%%#St_file# %s %s %%#St_file_sep#%s", icon, name, sep_r)
+  return segment("St_file", " " .. icon .. " " .. name .. " ")
+end
+
+function M.filesize()
+  local file_size_settings = settings().file_size
+  if file_size_settings == nil or file_size_settings.enabled == false then
+    return nil
+  end
+
+  local path = api.nvim_buf_get_name(stbufnr())
+  if path == "" then
+    return nil
+  end
+
+  local stat = uv and uv.fs_stat(path)
+  if stat == nil then
+    return nil
+  end
+
+  local formatted = format_file_size(stat.size)
+  if formatted == "" then
+    return nil
+  end
+
+  return segment("St_file", " " .. formatted .. " ")
 end
 
 function M.git()
   local status = vim.g.git_status_info
   if status == nil or status.branch == nil then
-    return ""
+    return nil
   end
 
-  local added = get_git_info("added", "  ")
-  local modified = get_git_info("modified", "   ")
-  local removed = get_git_info("deleted", "  ")
+  local added = status.added and status.added > 0 and ("  " .. status.added) or ""
+  local modified = status.modified and status.modified > 0 and ("  " .. status.modified) or ""
+  local removed = status.deleted and status.deleted > 0 and ("  " .. status.deleted) or ""
 
-  return string.format("%%#St_gitIcons# %s %s%s%s", status.branch, added, modified, removed)
+  return segment("StatusLine", hl("St_gitIcons")
+    .. " "
+    .. escape_statusline(status.branch)
+    .. added
+    .. modified
+    .. removed
+    .. " ")
 end
 
 function M.lsp()
-  local lsp_prefix = "  LSP ~"
-  local lsp_default = "%#St_Lsp#   LSP "
-  if vim.o.columns < settings().min_width.lsp or not rawget(vim, "lsp") then
-    return lsp_default
+  local lsp_name = ""
+  local label = "LSP"
+
+  if rawget(vim, "lsp") then
+    local name = get_attached_lsp_name(stbufnr())
+    if name ~= "" then
+      lsp_name = escape_statusline(name)
+      label = "LSP " .. lsp_name
+    end
+
+    if vim.o.columns >= settings().min_width.lsp then
+      local progress = get_attached_lsp_progress(stbufnr())
+      if progress ~= "" then
+        local prefix = lsp_name ~= "" and ("LSP " .. lsp_name) or "LSP"
+        label = prefix .. " " .. progress
+      end
+    end
   end
 
-  local progress = get_attached_lsp_progress(stbufnr())
-  if progress ~= "" then
-    return string.format("%%#St_Lsp#   %s ", progress)
-  end
-
-  local name = get_attached_lsp_name(stbufnr())
-  if name == "" then
-    return lsp_default
-  end
-
-  return string.format("%%#St_Lsp# %s %s ", lsp_prefix, name)
+  return segment("St_CommandMode", "  " .. label .. " ")
 end
 
 function M.cwd()
   if vim.o.columns < settings().min_width.cwd or uv == nil or uv.cwd == nil then
-    return ""
+    return nil
   end
 
   local name = uv.cwd()
   if name == nil then
-    return ""
+    return nil
   end
 
-  name = basename(name) or name
-  return string.format("%%#St_cwd_sep#%s%%#St_cwd_icon# 󰉋 %s %s", sep_l, name, sep_l)
+  name = escape_statusline(basename(name) or name)
+  return segment("St_cwd_icon", " 󰉋 " .. name .. " ")
+end
+
+function M.linecol()
+  local pos = api.nvim_win_get_cursor(stwinid())
+  return segment("St_file", string.format(" Ln %d:%d ", pos[1], pos[2] + 1))
 end
 
 function M.cursor()
-  local current_line = vim.api.nvim_win_get_cursor(stwinid())[1]
-  local total_lines = math.max(vim.api.nvim_buf_line_count(stbufnr()), 1)
+  local current_line = api.nvim_win_get_cursor(stwinid())[1]
+  local total_lines = math.max(api.nvim_buf_line_count(stbufnr()), 1)
   local percentage = (current_line * 100.0) / total_lines
-  return string.format("%%#St_pos_sep#%s%%#St_pos_icon#  %.1f  %s", sep_l, percentage, sep_l)
+  return segment("St_pos_icon", string.format("  %.1f%%%% ", percentage))
 end
-
-M["%="] = "%="
 
 local renderers = {
   mode = M.mode,
   file = M.file,
+  filesize = M.filesize,
   git = M.git,
   diagnostics = M.diagnostics,
   lsp = M.lsp,
   cwd = M.cwd,
+  linecol = M.linecol,
   cursor = M.cursor,
   ["%="] = function()
     return "%="
@@ -356,6 +497,59 @@ local renderers = {
 
 local function redraw_status()
   vim.cmd("redrawstatus")
+end
+
+local function split_regions()
+  local regions = { {} }
+
+  for _, module in ipairs(settings().modules) do
+    if module == "%=" then
+      table.insert(regions, {})
+    else
+      local renderer = renderers[module]
+      if renderer ~= nil then
+        local item = renderer()
+        if item ~= nil then
+          table.insert(regions[#regions], item)
+        end
+      end
+    end
+  end
+
+  return regions
+end
+
+local function render_left_region(region)
+  if #region == 0 then
+    return ""
+  end
+
+  local chunks = { region[1].text }
+  for index = 2, #region do
+    table.insert(chunks, transition_sep("right", region[index - 1].group, region[index].group))
+    table.insert(chunks, sep_r)
+    table.insert(chunks, region[index].text)
+  end
+
+  table.insert(chunks, transition_sep("right", region[#region].group, "StatusLine"))
+  table.insert(chunks, sep_r)
+  return table.concat(chunks)
+end
+
+local function render_right_region(region)
+  if #region == 0 then
+    return ""
+  end
+
+  local chunks = {}
+  for index, item in ipairs(region) do
+    local prev_group = index == 1 and "StatusLine" or region[index - 1].group
+    table.insert(chunks, transition_sep("left", prev_group, item.group))
+    table.insert(chunks, sep_l)
+    table.insert(chunks, item.text)
+  end
+
+  return table.concat(chunks)
 end
 
 local function clear_client_progress(client_id)
@@ -420,15 +614,31 @@ function M.start()
       redraw_status()
     end,
   })
+
+  api.nvim_create_autocmd("ColorScheme", {
+    group = group,
+    callback = function()
+      state.sep_cache = {}
+      redraw_status()
+    end,
+  })
 end
 
 function M.setup()
-  local result = {}
+  local regions = split_regions()
+  local result = { statusline_bg_hl() }
 
-  for _, module in ipairs(settings().modules) do
-    local renderer = renderers[module]
-    if renderer ~= nil then
-      table.insert(result, renderer())
+  for index, region in ipairs(regions) do
+    if index == 1 then
+      table.insert(result, render_left_region(region))
+    elseif index == #regions then
+      table.insert(result, render_right_region(region))
+    elseif #region > 0 then
+      table.insert(result, render_left_region(region))
+    end
+
+    if index < #regions then
+      table.insert(result, "%=")
     end
   end
 

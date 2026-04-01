@@ -5,12 +5,14 @@ local defaults = {
     modules = {
       "mode",
       "file",
+      "filesize",
       "git",
       "%=",
       "%=",
       "diagnostics",
       "lsp",
       "cwd",
+      "linecol",
       "cursor",
     },
     min_width = {
@@ -21,6 +23,9 @@ local defaults = {
       enabled = true,
       max_length = 40,
       bar_width = 10,
+    },
+    file_size = {
+      enabled = true,
     },
   },
   bufferline = {

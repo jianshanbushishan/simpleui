@@ -12,6 +12,7 @@ SimpleUI是一个轻量级的Neovim UI插件集合，提供现代化的状态栏
 - LSP诊断信息和客户端状态
 - LSP进度显示(支持Neovim 0.12的 `LspProgress`)
 - 当前工作目录显示
+- 当前行列位置显示
 - 光标位置显示
 - 多种分隔符样式可选(default/round/block/arrow)
 
@@ -53,7 +54,7 @@ use {
 ```lua
 require("simpleui").setup({
   statusline = {
-    modules = { "mode", "file", "%=", "git", "diagnostics", "cursor" },
+    modules = { "mode", "file", "%=", "git", "diagnostics", "cwd", "linecol", "cursor" },
     min_width = {
       lsp = 120,
       cwd = 90,
