@@ -452,7 +452,7 @@ function M.lsp()
     end
   end
 
-  return segment("St_Lsp", "  " .. hl("St_LspMsg") .. label .. " ")
+  return segment("St_Lsp", "  " .. hl("St_LspMsg") .. label)
 end
 
 function M.cwd()
