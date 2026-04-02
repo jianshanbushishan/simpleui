@@ -423,7 +423,7 @@ function M.git()
   local removed = status.deleted and status.deleted > 0 and ("  " .. status.deleted) or ""
 
   return segment("St_git", hl("St_gitIcons")
-    .. " "
+    .. "  "
     .. hl("St_git")
     .. escape_statusline(status.branch)
     .. added
@@ -443,7 +443,7 @@ function M.lsp()
   end
 
   local lsp_name = escape_statusline(name)
-  local label = "LSP " .. lsp_name
+  local label = string.format(" LSP(%s) ", lsp_name)
 
   if vim.o.columns >= settings().min_width.lsp then
     local progress = get_attached_lsp_progress(stbufnr())
