@@ -278,29 +278,85 @@ local function listed_normal_buffers()
   end, sync_buffers())
 end
 
+local function fit_entries_to_columns(entries, max_width, current_bufnr)
+  if #entries == 0 then
+    return {}
+  end
+
+  local current_index
+  for idx, entry in ipairs(entries) do
+    if entry.bufnr == current_bufnr then
+      current_index = idx
+      break
+    end
+  end
+
+  if not current_index then
+    local visible = {}
+    local total_width = 0
+
+    for _, entry in ipairs(entries) do
+      if total_width + entry.width > max_width and #visible > 0 then
+        break
+      end
+
+      total_width = total_width + entry.width
+      table.insert(visible, entry)
+    end
+
+    return visible
+  end
+
+  local start_index = 1
+  local end_index = current_index
+  local total_width = 0
+
+  for idx = 1, current_index do
+    total_width = total_width + entries[idx].width
+
+    while total_width > max_width and start_index < current_index do
+      total_width = total_width - entries[start_index].width
+      start_index = start_index + 1
+    end
+  end
+
+  for idx = current_index + 1, #entries do
+    local next_width = entries[idx].width
+    if total_width + next_width > max_width then
+      break
+    end
+
+    total_width = total_width + next_width
+    end_index = idx
+  end
+
+  local visible = {}
+  for idx = start_index, end_index do
+    table.insert(visible, entries[idx])
+  end
+
+  return visible
+end
+
 function M.setup()
-  local buffers = {}
-  local lengths = {}
-  local total_len = 0
-  local has_current = false
+  local entries = {}
 
   vim.t.bufs = listed_normal_buffers()
 
   for idx, bufnr in ipairs(vim.t.bufs) do
-    local len, str = M.format_buf(bufnr, idx)
-    table.insert(buffers, str)
-    table.insert(lengths, len)
-    total_len = total_len + len
-    has_current = cur_buf() == bufnr or has_current
+    local width, text = M.format_buf(bufnr, idx)
+    table.insert(entries, {
+      bufnr = bufnr,
+      width = width,
+      text = text,
+    })
+  end
 
-    while total_len > vim.o.columns and #buffers > 0 do
-      if has_current then
-        break
-      end
+  local visible_entries = fit_entries_to_columns(entries, vim.o.columns, cur_buf())
+  local buffers = {}
 
-      total_len = total_len - table.remove(lengths, 1)
-      table.remove(buffers, 1)
-    end
+  for _, entry in ipairs(visible_entries) do
+    table.insert(buffers, entry.text)
   end
 
   return table.concat(buffers) .. M.highlight_txt("%=", "Fill")
